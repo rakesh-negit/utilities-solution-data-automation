@@ -1,26 +1,28 @@
-# Community Parcels
+# Initialize Organization
 
 
 ## Features
 
-Update Community Parcels
+Initialize ArcGIS Organization
 
-The Community Parcel solution will leverage the core ArcGIS Platform to help communities aggregate parcel information from authoritative sources in a simple and sustainable way and leverage this information in many workflows. 
+The Initialize Organization toolset is used within the following ArcGIS for Utilities and ArcGIS for Telecommunication solutions:
+1. [ArcGIS for Water Model Organization](http://solutions.arcgis.com/utilities/water/help/arcgis-online-for-water-utilities/)
+2. [ArcGIS for Gas Model Organization](http://solutions.arcgis.com/utilities/gas/help/arcgis-online-for-gas-utilities/)
+3. [ArcGIS for Electric Model Organization](http://solutions.arcgis.com/utilities/electric/help/arcgis-online-for-electric-utilities/)
+4. [ArcGIS for Telecommunication Model Organization](http://solutions.arcgis.com/telecommunications/help/arcgis-online-for-telecom/)
 
-This GitHub repository houses the data aggregation toolset used to update the community parcels (seamless set of parcels) feature service.  
+This GitHub repository houses the toolset used to create groups and share existing Esri content with your ArcGIS Organization. 
+
 
 Toolset features:
 
-1. Map (fields) and adjust (project) your parcels to the community parcels schema
-2. Truncate parcels from the community parcels ArcGIS online feature service using county code information (county description)
-3. Add or update the community parcels ArcGIS online feature service 
+1. Create groups using properties from a CSV file.
+2. Share Esri's ArcGIS content to groups within an organization
 
 Toolset tools:
 
-1. Schema-only layer package that includes the Community Parcels schema
-2. A toolbox to run the parcel aggregation from ArcGIS - ArcMap, with a simple tool to execute
-3. A python scrpit that can run standalone as a Windows task scheduler, or any scheduler that can run a python script
-4. A configuration file (text) that allows you to specify the location of your parcels, the community parcels, and username and password information 
+3. A python scripts to create groups and share content with your organization
+4. A configuration file (text) that allows you to specify yout ArcGIS portal, username and password information 
 
 
 ## Instructions
@@ -31,7 +33,7 @@ Toolset tools:
 ## Requirements
 
 * Notepad or a Python Editor
-* ArcGIS Desktop 10.2
+* ArcGIS Organization
  
 ## Resources
 
