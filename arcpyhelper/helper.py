@@ -19,9 +19,8 @@ import ConfigParser
 from copy import deepcopy
 
 
-from arcrest.agol import common
-from arcrest.agol import admin
-from arcrest.agol import layer
+import arcrest
+
 from urlparse import urlparse
 
 import base64
@@ -295,12 +294,21 @@ def publish_feature_service_from_config(config):
     password = cred_info['Password']
     if cred_info.has_key('Portal') == False:
         portal = ''
-    else:   
-        portal = cred_info['Portal']    
+        securityHandler = arcrest.AGOLTokenSecurityHandler(username=username, password=password)    
+    else:
+        if cred_info['Portal'] == '' or cred_info['Portal'] is None:
+            portal = ''
+            securityHandler = arcrest.AGOLTokenSecurityHandler(username=username, password=password)                
+        else:
+            portal = cred_info['Portal']    
+            securityHandler = arcrest.PortalTokenSecurityHandler(username=username, 
+                                                            password=password, 
+                                                            baseOrgUrl = portal, 
+                                                            proxy_url=None, 
+                                                            proxy_port=None)
+        
     
-    agol = admin.AGOL(username=username, password=password, org_url=portal)
-
-    fsInfo = publishFSfromConfig(agol, fs_info)
+    fsInfo = publishFSfromConfig(securityHandler, fs_info)
     for res in fsInfo:
         if not 'error' in res:
     
@@ -1097,6 +1105,7 @@ def trace():
     return line, filename, synerror
 
 
+
 def deleteFC(in_datasets):
 
     for in_data in in_datasets:
@@ -1531,11 +1540,12 @@ def publishFSfromConfig(agol,config):
 
         
 def _publishFSfromConfig(agol,config):
+    
     # Report settings
     mxd = config['Mxd']
 
     # Service settings
-    reportTitle = config['Title']
+    service_name = config['Title']
 
     everyone = config['ShareEveryone']
     orgs = config['ShareOrg']
@@ -1557,9 +1567,40 @@ def _publishFSfromConfig(agol,config):
 
 
     datestring = datetime.datetime.now().strftime(loc_df)
-    reportTitle = reportTitle.replace('{DATE}',datestring)
-    reportTitle = reportTitle.replace('{Date}',datestring)
+    service_name = service_name.replace('{DATE}',datestring)
+    service_name = service_name.replace('{Date}',datestring)
 
+  
+    sd = arcrest.common.servicedef.MXDtoFeatureServiceDef(mxd_path=mxd, 
+                                                         service_name=service_name, 
+                                                         tags="None", 
+                                                         description="None", 
+                                                         folder_name=folderName, 
+                                                         capabilities=capabilities, 
+                                                         maxRecordCount=maxRecordCount, 
+                                                         server_type='MY_HOSTED_SERVICES')  
+    
+    
+    admin = arcrest.manageorg.Administration(url="http://www.arcgis.com", securityHandler=securityHandler, 
+                                             proxy_url=None, 
+                                             proxy_port=None, 
+                                             initialize=False)
+    
+    
+    portal = admin.portals()
+    content = admin.content
+    itemParams = arcrest.manageorg.ItemParameter()
+    itemParams.title = service_name
+    itemParams.thumbnail = "http://its.ucsc.edu/software/images/arcgis.jpg"
+    itemParams.type = "Web Map"
+    itemParams.tags = "Map, Earthquake"
+    itemParams.extent = "-180,-80.1787,180, 80.1787"
+    #   Enter in the username you wish to load the item to
+     #
+     usercontent = content.usercontent(username=username)
+     #   Add the Web Map
+     #
+     print usercontent.addItem(itemParameters=itemParams,    
     itemInfo = agol.createFeatureService(mxd=mxd,title=reportTitle,share_everyone=everyone,share_org=orgs,
                                          share_groups=groups,thumbnail=thumbnail,folder_name=folderName,capabilities=capabilities,maxRecordCount=maxRecordCount)
     if 'error' in itemInfo:
@@ -1568,6 +1609,8 @@ def _publishFSfromConfig(agol,config):
         return itemInfo['services'][0]
     else:
         raise ValueError(str(itemInfo))
+
+
 
 def create_dashboard(webmap_id,config):
     publish_info = config['PublishingDetails']
