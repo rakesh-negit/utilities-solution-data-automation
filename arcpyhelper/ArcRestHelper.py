@@ -45,9 +45,9 @@ class publishingtools():
                                                               proxy_url=self._proxy_url, 
                                                               proxy_port=self._proxy_port)            
         
-    def publish_FS_config(self,fs_config):
+    def publishFsFromMXD(self,fs_config):
         """
-            publishs a feature service from a config file
+            publishs a feature service from a mxd
             Inputs:
                 feature_service_config: Json file with list of feature service publishing details
             Output:
@@ -98,8 +98,8 @@ class publishingtools():
         service_name = config['Title']
     
         everyone = config['ShareEveryone']
-        orgs = config['ShareOrg']
-        groups = config['Groups']  #Groups are by ID. Multiple groups comma separated
+        org = config['ShareOrg']
+        groupNames = config['Groups']  #Groups are by ID. Multiple groups comma separated
     
         folderName = config['Folder']
         thumbnail = config['Thumbnail']
@@ -128,7 +128,7 @@ class publishingtools():
                                                              service_name=service_name_safe, 
                                                              tags=None, 
                                                              description=None, 
-                                                             folder_name=folderName, 
+                                                             folder_name=None, 
                                                              capabilities=capabilities, 
                                                              maxRecordCount=maxRecordCount, 
                                                              server_type='MY_HOSTED_SERVICES')  
@@ -155,9 +155,27 @@ class publishingtools():
                 folderID = res['folder']['id']                 
             else:
                 pass
-        #   Add the Web Map
-        #
-        result = adminusercontent.addItem( itemParameters=itemParams,
+       
+        #q = "title:\""+ service_name + "\"AND owner:\"" + self._securityHandler.username + "\" AND type:\"" + "Service Definition" + "\""
+   
+        #items = admin.query(q=q, bbox=None, start=1, num=10, sortField=None, 
+                   #sortOrder="asc")
+    
+        #if items['total'] >= 1:   
+            #userItem = admin.content.userItem( itemId = items['results'][0]['id'])
+            #result = userItem.updateItem( itemParameters=itemParams,data=sd_Info['servicedef'])  
+        folderContent = admin.content.getUserContent(folderId=folderID)
+            
+        itemID = admin.content.getItemID(title=service_name,itemType='Service Definition',userContent=folderContent)
+        if not itemID is None:
+            resultSD = adminusercontent.updateItem(itemId=itemID,
+                                        updateItemParameters=itemParams,
+                                        folderId=folderID,
+                                        filePath=sd_Info['servicedef'])
+         
+        else:
+            
+            resultSD = adminusercontent.addItem( itemParameters=itemParams,
                     filePath=sd_Info['servicedef'],
                     overwrite=True,
                     folder=folderID,
@@ -168,28 +186,27 @@ class publishingtools():
                     destinationItemId=None,
                     serviceProxyParams=None,
                     metadata=None)
-        if 'error' in result:
-            if 'code' in result['error']:
-                if result['error']['code'] == 409:
-                    userContent = admin.content.getUserContent(folderId=folderID)
-                    
-                    itemID = admin.content.getItemID(name=service_name_safe,itemType='Service Definition',userContent=userContent)
-                    if not itemID is None:
-                        result = adminusercontent.deleteItems(itemID)
-                        if 'success' in result:
-                            result = adminusercontent.addItem( itemParameters=itemParams,
-                                             filePath=sd_Info['servicedef'],
-                                             overwrite=True,
-                                             folder=folderID,
-                                             url=None,
-                                             text=None,
-                                             relationshipType=None,
-                                             originItemId=None,
-                                             destinationItemId=None,
-                                             serviceProxyParams=None,
-                                             metadata=None)                    
-                    pass#self.deleteItems(items)
+        
+                            
+        if not 'error' in resultSD:
+            publishParameters = arcrest.manageorg.PublishSDParmaeters(tags=sd_Info['tags'],overwrite='true')
+            #itemID = admin.content.getItemID(title=service_name,itemType='Feature Service',userContent=folderContent)   
+            #if not itemID is None:
+                #delres=adminusercontent.deleteItems(items=itemID)  
             
+            resultFS = adminusercontent.publishItem(
+                fileType="serviceDefinition",
+                itemId=resultSD['id'],
+                publishParameters=publishParameters)                        
+    
+            if 'success' in resultFS:
+                
+                group_ids = admin.content.getGroupIDs(groupNames=groupNames)
+                usercontent.shareItems(items=resultFS['ID'],
+                                       groups="",
+                                       everyone=everyone,
+                                       org=org                                       )
+    
         #service_url = ''
     
            #for service in itemInfo['services']:

@@ -213,6 +213,7 @@ def publish_dashboard_from_config(config,mapInfo=None):
     layerNamesID = {}
     layerIDs =[]
 
+    layerIDSwitch = []
 
     if 'operationalLayers' in item_data:
         for opLayer in item_data['operationalLayers']:
@@ -243,9 +244,16 @@ def publish_dashboard_from_config(config,mapInfo=None):
                                 for dataSource in widget['dataSources']:
                                     if dataSource.has_key('layerId'):
                                         if layerNamesID.has_key(dataSource['name']):
+                                            layerIDSwitch.append({"OrigID":dataSource['layerId'],"NewID":layerNamesID[dataSource['name']] })                                          
                                             dataSource['layerId'] = layerNamesID[dataSource['name']]
                                       
                             
+
+    configFileAsString = json.dumps(item_data)
+    for repl in layerIDSwitch:
+        configFileAsString.replace(repl['OrigID'],repl['NewID'])
+
+    item_data = json.loads(configFileAsString)
 
 
     name = app_info['Title']
