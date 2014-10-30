@@ -54,20 +54,24 @@ class resetTools():
         admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
         portal = admin.portals(portalId='self')
         users = portal.users(start=1, num=100)
-        adminusercontent = admin.content.usercontent()
+
         for user in users['users']:
             print user['username']
+            adminusercontent = admin.content.usercontent(username=user['username'])
+
             userContent = admin.content.getUserContent(username=user['username'])
+            for userItem in userContent['items']:
+
+                print adminusercontent.deleteItems(items=userItem['id'])
             if 'folders' in userContent:
                 for userItem in userContent['folders']:
-                    userContent = admin.content.getUserContent(username=user['username'],folderId=userItem['id'])
-                    for userItem in userContent['items']:
+                    folderContent = admin.content.getUserContent(username=user['username'],folderId=userItem['id'])
+                    for userItem in folderContent['items']:
                         print adminusercontent.deleteItems(items=userItem['id'])
 
                     print adminusercontent.deleteFolder(folderId=userItem['id'])
 
-            for userItem in userContent['items']:
-                print adminusercontent.deleteItems(items=userItem['id'])
+
 
 
 ########################################################################
