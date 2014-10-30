@@ -2004,6 +2004,7 @@ def publishWebMapFromConfig(agol,config,replaceInfo=None):
 
 
 
+
 def credHelper(config):
     savecred = False
     if config.has_key('Credentials'):

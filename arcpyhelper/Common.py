@@ -1,5 +1,72 @@
 import json
 import inspect
+import random
+import string
+import datetime
+from urlparse import urlparse
+
+def getLayerIndex(url):
+    urlInfo = urlparse(url)
+    urlSplit = str(urlInfo.path).split('/')
+    inx = urlSplit[len(urlSplit)-1]
+
+    if is_number(inx):
+        return int(inx)
+    
+def getLayerName(url):
+    urlInfo = urlparse(url)
+    urlSplit = str(urlInfo.path).split('/')
+    name = urlSplit[len(urlSplit)-3]
+    return name   
+
+def random_string_generator(size=6, chars=string.ascii_uppercase):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+def random_int_generator(maxrange):
+    return random.randint(0,maxrange)
+
+def local_time_to_online(dt=None):
+    """
+       converts datetime object to a UTC timestamp for AGOL
+       Inputs:
+          dt - datetime object
+       Output:
+          Long value
+    """
+    if dt is None:
+        dt = datetime.datetime.now()
+
+    is_dst = time.daylight > 0 and time.localtime().tm_isdst > 0
+    utc_offset =  (time.altzone if is_dst else time.timezone)
+
+    return (time.mktime(dt.timetuple()) * 1000) + (utc_offset * 1000)
+
+def online_time_to_string(value,timeFormat):
+    """
+       Converts a timestamp to date/time string
+       Inputs:
+          value - timestamp as long
+          timeFormat - output date/time format
+       Output:
+          string
+    """
+    return datetime.datetime.fromtimestamp(value /1000).strftime(timeFormat)
+#----------------------------------------------------------------------
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+
+    try:
+        import unicodedata
+        unicodedata.numeric(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+
+    return False
 #----------------------------------------------------------------------
 def init_config_json(config_file):
 
