@@ -3,7 +3,7 @@
     @contact: ArcGISTeamUtilities@esri.com
     @company: Esri
     @version: 1.0.0
-    @description: Script to remove all user content and groups!!!!!.
+    @description: Used to stage the app in your organization.
     @requirements: Python 2.7.x, ArcGIS 10.2.1
     @copyright: Esri, 2014
 """
@@ -13,7 +13,7 @@ from arcpy import env
 from arcpyhelper import ArcRestHelper
 from arcpyhelper import Common
 
-log_file='./logs/Clean.log'
+log_file='./logs/AppendToFeatureService.log'
 dateTimeFormat = '%Y-%m-%d %H:%M'
 globalLoginInfo = 'C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/configs/GlobalLoginInfo.json'
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
                 cred_info = loginInfo['Credentials']
         print "    Logging in"
         
-        arh = ArcRestHelper.resetTools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
+        arh = ArcRestHelper.featureservicetools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
                                            token_url=None, 
                                            proxy_url=None, 
                                            proxy_port=None)
@@ -46,8 +46,14 @@ if __name__ == "__main__":
             
         print "    Logged in successfully"
         
-        arh.removeUserData()
-        arh.removeUserGroups()
+        fs = arh.GetFeatureService(itemId='c9342bc237a54a3db0fc21aa089c4fb5',returnURLOnly=False)
+        if not fs is None:                
+            fl = arh.GetLayerFromFeatureService(fs=fs,layerName='DMA Sensors',returnURLOnly=False)
+            if not fl is None:
+                results = fl.addFeatures(fc=r'C:\Work\ArcGIS for Utilities\_Water\Staging\A4W-SubDMAProcessor-v1\Maps and GDBs\DMA.gdb\DMASensors')        
+                print results
+        
+        
     except(TypeError,ValueError,AttributeError),e:
         print e
               
