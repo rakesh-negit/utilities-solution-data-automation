@@ -13,10 +13,10 @@ from arcpy import env
 from arcpyhelper import ArcRestHelper
 from arcpyhelper import Common
 
-log_file='./logs/cleanuporg.log'
+log_file='../logs/DeleteFeatureServiceData.log'
 dateTimeFormat = '%Y-%m-%d %H:%M'
-globalLoginInfo = 'C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/configs/GlobalLoginInfo.json'
-configFiles = ['./configs/DeleteFeatureFromFeatureServices.json']
+#globalLoginInfo = '../configs/GlobalLoginInfo.json'
+configFiles = ['../configs/WaterServices.json','../configs/TelcoServices.json','../configs/ElectricServices.json','../configs/GasServices.json']
 
 if __name__ == "__main__":
     env.overwriteOutput = True
@@ -30,16 +30,21 @@ if __name__ == "__main__":
 
         print "********************Script Started********************"
         print datetime.datetime.now().strftime(dateTimeFormat)
-        cred_info = None
-        if os.path.isfile(globalLoginInfo):
-            loginInfo = Common.init_config_json(config_file=globalLoginInfo)
-            if 'Credentials' in loginInfo:
-                cred_info = loginInfo['Credentials']
-        print "    Logging in"
-        arh = ArcRestHelper.featureservicetools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
-                                                   token_url=None, 
-                                                   proxy_url=None, 
-                                                   proxy_port=None)
+        #cred_info = None
+        #if os.path.isfile(globalLoginInfo):
+            #loginInfo = Common.init_config_json(config_file=globalLoginInfo)
+            #if 'Credentials' in loginInfo:
+                #cred_info = loginInfo['Credentials']
+        
+        arh = ArcRestHelper.featureservicetools(username =None, password=None,org_url=None,
+                                                           token_url=None, 
+                                                           proxy_url=None, 
+                                                           proxy_port=None)
+                        
+        #arh = ArcRestHelper.featureservicetools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
+                                                   #token_url=None, 
+                                                   #proxy_url=None, 
+                                                   #proxy_port=None)
                 
         if arh is None:
             print "    Security handler not created"

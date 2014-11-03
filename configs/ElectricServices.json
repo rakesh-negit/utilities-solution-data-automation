@@ -1,0 +1,28 @@
+{
+    "FeatureServices": [
+      {
+        "url":"http://services.arcgis.com/8xyWD7BXPXLSUGKQ/ArcGIS/rest/services/MapChangeRequest/FeatureServer/0",    
+        "sql": "1=1"
+      },
+      {
+        "url":"http://services.arcgis.com/8xyWD7BXPXLSUGKQ/arcgis/rest/services/MapNotes/FeatureServer/0",    
+        "sql": "1=1"
+      },
+      {
+        "url":"http://services.arcgis.com/8xyWD7BXPXLSUGKQ/arcgis/rest/services/MapNotes/FeatureServer/0",    
+        "sql": "OBJECTID > 10"
+      },
+      {
+        "url":"http://services.arcgis.com/8xyWD7BXPXLSUGKQ/arcgis/rest/services/DamageAssessment/FeatureServer/1",    
+        "sql": "1=1"
+      },
+      {
+        "url":"http://services.arcgis.com/8xyWD7BXPXLSUGKQ/arcgis/rest/services/ReportStreetlightProblem/FeatureServer/0",    
+        "sql": "OBJECTID > 6"
+      },
+      {
+        "url":"http://services.arcgis.com/8xyWD7BXPXLSUGKQ/arcgis/rest/services/ReportStreetlightProblem/FeatureServer/2",    
+        "sql": "1=1"
+      }
+    ]
+}
