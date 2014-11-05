@@ -40,8 +40,8 @@ def main(*argv):
         password = argv[1]
         org_url = argv[2]
         fsId = argv[3]
-        layerName = argv[4]
-        dataToAppend = argv[5]
+        layerNames = argv[4]
+        sql = argv[5]
         
         #userName = 
         #password = 
@@ -51,42 +51,38 @@ def main(*argv):
         #dataToAppend = 
                 
    
-        if arcpy.Exists(dataset=dataToAppend) == False:
-            outputPrinter(message="Data layer not found: %" % dataToAppend)
-        else:
-            arh = ArcRestHelper.featureservicetools(username = userName, password=password,org_url=org_url,
-                                                       token_url=None, 
-                                                       proxy_url=None, 
-                                                       proxy_port=None)                    
-            if not arh is None:
-                outputPrinter(message="Security handler created")
-                        
-                fs = arh.GetFeatureService(itemId=fsId,returnURLOnly=False)
-                if arh.valid:
-                    outputPrinter("Logged in successful")        
-                    if not fs is None:                
+
+        arh = ArcRestHelper.featureservicetools(username = userName, password=password,org_url=org_url,
+                                                   token_url=None, 
+                                                   proxy_url=None, 
+                                                   proxy_port=None)                    
+        if not arh is None:
+            outputPrinter(message="Security handler created")
+                    
+            fs = arh.GetFeatureService(itemId=fsId,returnURLOnly=False)
+            if arh.valid:
+                outputPrinter("Logged in successful")        
+                if not fs is None:
+                    for layerName in layerNames.split(','):
                         fl = arh.GetLayerFromFeatureService(fs=fs,layerName=layerName,returnURLOnly=False)
                         if not fl is None:
-                            results = fl.addFeatures(fc=dataToAppend)        
+                            results = fl.deleteFeatures(where=sql)        
                             outputPrinter (message=results)
-                            if 'error' in results:
-                                arcpy.SetParameterAsText(6, "false")
-                            else:
-                                arcpy.SetParameterAsText(6, "true")
                         else:
+                            
                             outputPrinter(message="Layer %s was not found, please check your credentials and layer name" % layerName)        
-                    else:
-                        outputPrinter(message="Feature Service with id %s was not found" % fsId)                    
                 else:
-                    outputPrinter(arh.message)   
-                    arcpy.SetParameterAsText(6, "false")
-                    
-                
+                    outputPrinter(message="Feature Service with id %s was not found" % fsId)                    
             else:
-                outputPrinter(message="Security handler not created, exiting")
+                outputPrinter(arh.message)   
                 arcpy.SetParameterAsText(6, "false")
                 
-        
+            
+        else:
+            outputPrinter(message="Security handler not created, exiting")
+            arcpy.SetParameterAsText(6, "false")
+            
+        arcpy.SetParameterAsText(6, "true")
     except arcpy.ExecuteError:
         line, filename, synerror = trace()
         outputPrinter("error on line: %s" % line)

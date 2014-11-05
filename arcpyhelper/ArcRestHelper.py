@@ -29,12 +29,12 @@ class resetTools():
                  proxy_port=None):
         
         """Constructor"""
-        self._org_url = org_url
-        self._username = username
-        self._password = password
-        self._proxy_url = proxy_url
-        self._proxy_port = proxy_port 
-        self._token_url = token_url
+        _org_url = org_url
+        _username = username
+        _password = password
+        _proxy_url = proxy_url
+        _proxy_port = proxy_port 
+        _token_url = token_url
       
         if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
             self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
@@ -108,7 +108,9 @@ class publishingtools():
     _proxy_port = None
     _token_url = None
     _securityHandler = None
-    
+    _valid = True
+    _message = ""        
+    #----------------------------------------------------------------------           
     def __init__(self, 
                  username, 
                  password, 
@@ -139,7 +141,18 @@ class publishingtools():
                                                               proxy_url=self._proxy_url, 
                                                               proxy_port=self._proxy_port)            
         
-   
+
+    #----------------------------------------------------------------------  
+    @property
+    def message(self):
+        """ returns any messages """
+        return self._message   
+    #----------------------------------------------------------------------
+    @property
+    def valid(self):
+        """ returns boolean wether handler is valid """
+        return self._valid
+    #----------------------------------------------------------------------        
     def publishMap(self,maps_info,fsInfo=None):
       
         map_results = []
@@ -173,17 +186,15 @@ class publishingtools():
             
             itemInfo  = self._publishMap( config=map_info,
                                                replaceInfo=replaceInfo)
+            map_results.append(itemInfo)
             if not 'error' in itemInfo:
-                print _("            %s webmap created" %
-                        itemInfo['Name'])
-                map_results.append(itemInfo)
-        
+                print "            %s webmap created" % itemInfo['Name']
             else:
-                print str(itemInfo)
-                map_results.append(itemInfo)
-        return map_results
+                print "            " + str(resFS)
             
-            #----------------------------------------------------------------------   
+        return map_results
+    
+    #----------------------------------------------------------------------               
     def _publishMap(self,config,replaceInfo=None):
     
         name = ''
@@ -240,14 +251,14 @@ class publishingtools():
                                                         "popupInfo" : opLayer["popupInfo"]
                                                         }
                                     else:
-                                        updatedLayer = {"id" : layerIdx}
+                                        updatedLayer = None
                                        
                                     updated = False
                                     for layer in layers:
                                         if str(layer['id']) == str(layerIdx):
                                             layer = updatedLayer
                                             updated = True
-                                    if updated == False:
+                                    if updated == False and not updatedLayer is None:
                                         layers.append(updatedLayer)
                                     if len(layers):                                
                                         text = {
@@ -261,7 +272,9 @@ class publishingtools():
                                         updateResults = adminusercontent.updateItem(itemId = replaceItem['ItemID'],
                                                                     updateItemParameters=itemParams,
                                                                     folderId=replaceItem['ItemFolder'],
-                                                                    text=text)                                                                   
+                                                                    text=json.dumps(text))       
+                                        if 'error' in updateResults:
+                                            print updateResults
                                                   
                     opLayers = webmap_data['operationalLayers']    
                     for opLayer in opLayers:
@@ -288,14 +301,14 @@ class publishingtools():
                                                     "popupInfo" : opLayer["popupInfo"]
                                                     }
                                 else:
-                                    updatedLayer = {"id" : layerIdx}
+                                    updatedLayer = None
                                    
                                 updated = False
                                 for layer in layers:
                                     if str(layer['id']) == str(layerIdx):
                                         layer = updatedLayer
                                         updated = True
-                                if updated == False:
+                                if updated == False and not updatedLayer is None:
                                     layers.append(updatedLayer)
                                 if len(layers):                                
                                     text = {
@@ -309,8 +322,9 @@ class publishingtools():
                                     updateResults = adminusercontent.updateItem(itemId = replaceItem['ItemID'],
                                                                 updateItemParameters=itemParams,
                                                                 folderId=replaceItem['ItemFolder'],
-                                                                text=text )                                           
-                   
+                                                                text=json.dumps(text))                                           
+                                    if 'error' in updateResults:
+                                        print updateResults                                    
             
             opLayers = webmap_data['operationalLayers']    
             for opLayer in opLayers:
@@ -322,6 +336,7 @@ class publishingtools():
                 for opLayer in opLayers:
                     opLayer['id'] = Common.getLayerName(url=opLayer['url']) + "_" + str(Common.random_int_generator(maxrange = 9999))
                     
+                
                 
         name = config['Title']
     
@@ -341,8 +356,8 @@ class publishingtools():
         extent = config['Extent']
     
         everyone = config['ShareEveryone']
-        orgs = config['ShareOrg']
-        groups = config['Groups']  #Groups are by ID. Multiple groups comma separated
+        org = config['ShareOrg']
+        groupNames = config['Groups']  #Groups are by ID. Multiple groups comma separated
     
         folderName = config['Folder']
         thumbnail = config['Thumbnail']
@@ -350,17 +365,83 @@ class publishingtools():
         itemType = config['Type']
         typeKeywords = config['typeKeywords']
     
+        
+        #itemID = agol.publishItem(name=name,tags=tags,snippet=snippet,description=description,extent=extent,
+                                   #data=webmap_data,thumbnail=thumbnail,share_everyone=everyone,share_org=orgs,share_groups=groups,
+                                   #item_type=itemType,typeKeywords=typeKeywords,folder_name=folderName,delete_existing=delete_existing)
     
-        itemID = agol.publishItem(name=name,tags=tags,snippet=snippet,description=description,extent=extent,
-                                   data=webmap_data,thumbnail=thumbnail,share_everyone=everyone,share_org=orgs,share_groups=groups,
-                                   item_type=itemType,typeKeywords=typeKeywords,folder_name=folderName,delete_existing=delete_existing)
-    
-        return {"ItemID" : itemID, "Name" : name}
-    
-    
-    
+        #return {"ItemID" : itemID, "Name" : name}
+
+        if webmap_data is None:
+            return None
+        
+        admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
+        
+        
+        itemParams = arcrest.manageorg.ItemParameter()
+        itemParams.title = name
+        itemParams.thumbnail = thumbnail
+        itemParams.type = "Web Map"
+        itemParams.overwrite = True
+        itemParams.description = description
+        itemParams.extent = extent
+        itemParams.typeKeywords = typeKeywords
+        
+        adminusercontent = admin.content.usercontent()
+        userCommunity = admin.community 
+        userContent = admin.content.getUserContent()
+        
+        folderId = admin.content.getFolderID(name=folderName,userContent=userContent)
+        if folderId is None:
+            res = adminusercontent.createFolder(name=folderName)
+            if 'success' in res:
+                folderId = res['folder']['id']                 
+            else:
+                pass
+       
+        folderContent = admin.content.getUserContent(folderId=folderId)
+            
+        itemID = admin.content.getItemID(title=name,itemType='Web Map',userContent=folderContent)
+        if not itemID is None:
+            resultMap = adminusercontent.updateItem(itemId=itemID,
+                                        updateItemParameters=itemParams,
+                                        folderId=folderId,
+                                        text=json.dumps(webmap_data))
+         
+        else:
+            
+            resultMap = adminusercontent.addItem( itemParameters=itemParams,
+                    overwrite=True,
+                    folder=folderId,
+                    url=None,                    
+                    relationshipType=None,
+                    originItemId=None,
+                    destinationItemId=None,
+                    serviceProxyParams=None,
+                    metadata=None,
+                    text=json.dumps(webmap_data))
+        
+                            
+        if not 'error' in resultMap:
+                            
+            group_ids = userCommunity.getGroupIDs(groupNames=groupNames)
+            shareResults = adminusercontent.shareItems(items=resultMap['id'],
+                                   groups=','.join(group_ids),
+                                   everyone=everyone,
+                                   org=org)
+            updateParams = arcrest.manageorg.ItemParameter()             
+            updateParams.title = name
+            updateResults = adminusercontent.updateItem(itemId=resultMap['id'],
+                                                        updateItemParameters=updateParams,
+                                                        folderId=folderId)
+            resultMap['folderId'] = folderId
+            resultMap['Name'] = name
+            return resultMap
+            
+           
 
     
+    #----------------------------------------------------------------------           
     def publishFsFromMXD(self,fs_config):
         """
             publishs a feature service from a mxd
@@ -399,13 +480,14 @@ class publishingtools():
                     if 'serviceurl' in resFS['FSInfo']:
                         print "            %s created" % resFS['FSInfo']['serviceurl']
                     else:
-                        print str(resFS)                    
+                        print "            " + str(resFS)                    
                 else:
-                    print str(resFS)
+                    print "            " + str(resFS)
             else:
-                print str(resFS)
+                print "            " + str(resFS)
         return res
     
+    #----------------------------------------------------------------------           
     def _publishFSfromConfig(self,config):
         
         # Report settings
@@ -557,17 +639,9 @@ class publishingtools():
 
 ########################################################################
 class featureservicetools():
-    _username = None
-    _password = None
-    _org_url = None
-    _proxy_url = None
-    _proxy_port = None
-    _token_url = None
-    _securityHandler = None
-    
     def __init__(self, 
-                 username, 
-                 password, 
+                 username=None, 
+                 password=None, 
                  org_url=None,
                  token_url = None,
                  proxy_url=None, 
@@ -580,24 +654,44 @@ class featureservicetools():
         self._proxy_url = proxy_url
         self._proxy_port = proxy_port 
         self._token_url = token_url
-      
-        if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
-            self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
-                                                              password=self._password, 
-                                                              token_url=self._token_url, 
-                                                              proxy_url=self._proxy_url, 
-                                                              proxy_port=self._proxy_port)         
-        else:
-           
-            self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
-                                                              password=self._password, 
-                                                              baseOrgUrl=self._org_url, 
-                                                              proxy_url=self._proxy_url, 
-                                                              proxy_port=self._proxy_port)            
+        self._valid = True
+        self._message = ""                
+        if not username is None:
+            if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
+                self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
+                                                                  password=self._password, 
+                                                                  token_url=self._token_url, 
+                                                                  proxy_url=self._proxy_url, 
+                                                                  proxy_port=self._proxy_port)         
+            else:
+               
+                self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
+                                                                  password=self._password, 
+                                                                  baseOrgUrl=self._org_url, 
+                                                                  proxy_url=self._proxy_url, 
+                                                                  proxy_port=self._proxy_port)            
         
- 
+
+        
+    #----------------------------------------------------------------------  
+    @property
+    def message(self):
+        """ returns any messages """
+        return self._message   
+    #----------------------------------------------------------------------
+    @property
+    def valid(self):
+        """ returns boolean wether handler is valid """
+        return self._valid
+    #----------------------------------------------------------------------    
     def GetFeatureService(self,itemId,returnURLOnly=False):
         admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
+        if self._securityHandler.valid == False:
+            self._valid = self._securityHandler.valid  
+            self._message = self._securityHandler.message
+            return None
+        
+            
         item = admin.content.item(itemId=itemId)
         if item.itemType == "Feature Service":
             if returnURLOnly:
@@ -607,6 +701,7 @@ class featureservicetools():
                    url=item.url,
                    securityHandler=self._securityHandler)          
         return None
+    #----------------------------------------------------------------------    
     def GetLayerFromFeatureServiceByURL(self,url,layerName="",returnURLOnly=False):
         fs = FeatureService(
                 url=url,
@@ -614,6 +709,7 @@ class featureservicetools():
          
         return self.GetLayerFromFeatureService(fs=fs,layerName=layerName,returnURLOnly=returnURLOnly)
          
+    #----------------------------------------------------------------------  
     def GetLayerFromFeatureService(self,fs,layerName="",returnURLOnly=False):
     
         layers = fs.layers
@@ -628,13 +724,27 @@ class featureservicetools():
                 for sublayer in layer.subLayers:
                     if sublayer == layerName:
                         return sublayer
+        for table in fs.tables:
+            if table.name == layerName:
+                if returnURLOnly:
+                    return fs.url + '/' + str(layer.id)
+                else:
+                    return table            
         return None
             
+    #---------------------------------------------------------------------- 
     def AddFeaturesToFeatureLayer(self,url,pathToFeatureClass):
-        #admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
         
         fl = FeatureLayer(
                url=url,
                securityHandler=self._securityHandler) 
-        fl.addFeatures(fc=pathToFeatureClass)
-        pass
+        return fl.addFeatures(fc=pathToFeatureClass)
+        
+    #---------------------------------------------------------------------- 
+    def DeleteFeaturesFromFeatureLayer(self,url,sql):
+            
+        fl = FeatureLayer(
+               url=url,
+               securityHandler=self._securityHandler) 
+        return fl.deleteFeatures(where=sql)
+            
