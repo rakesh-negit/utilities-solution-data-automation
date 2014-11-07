@@ -1,0 +1,226 @@
+{
+  "operationalLayers": [
+    {
+      "id": "DMAs_9058",
+      "layerType": "ArcGISFeatureLayer",
+      "url": "{DMA}/2",
+      "visibility": true,
+      "opacity": 1,
+      "title": "District Metered Areas",
+      "itemId": "166944288d204597b1ead13e76efd8dd",
+      "popupInfo": {
+        "showAttachments": true,
+        "fieldInfos": [
+          {
+            "isEditable": false,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "OBJECTID",
+            "visible": false,
+            "fieldName": "OBJECTID"
+          },
+          {
+            "isEditable": true,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "DMA Identifier",
+            "visible": true,
+            "fieldName": "DMAID"
+          },
+          {
+            "isEditable": true,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "List of Input Meters",
+            "visible": true,
+            "fieldName": "INMETERS"
+          },
+          {
+            "isEditable": true,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "List of Ouput Meters",
+            "visible": true,
+            "fieldName": "OUTMETERS"
+          },
+          {
+            "isEditable": true,
+            "format": {
+              "digitSeparator": true,
+              "places": 0
+            },
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "Count of Residental Customers",
+            "visible": true,
+            "fieldName": "RESCUST"
+          },
+          {
+            "isEditable": true,
+            "format": {
+              "digitSeparator": true,
+              "places": 0
+            },
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "Count of Commercial Customers",
+            "visible": true,
+            "fieldName": "COMCUST"
+          },
+          {
+            "isEditable": true,
+            "format": {
+              "digitSeparator": true,
+              "places": 2
+            },
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "Nighttime GPM",
+            "visible": true,
+            "fieldName": "GPM"
+          },
+          {
+            "isEditable": true,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "DMA Type",
+            "visible": true,
+            "fieldName": "TYPE"
+          },
+          {
+            "isEditable": true,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "Status",
+            "visible": true,
+            "fieldName": "STATUS"
+          },
+          {
+            "isEditable": true,
+            "format": {
+              "dateFormat": "longMonthDayYear"
+            },
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "GPM Time",
+            "visible": true,
+            "fieldName": "GPMTime"
+          },
+          {
+            "isEditable": false,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "",
+            "visible": false,
+            "fieldName": "GlobalID"
+          }
+        ],
+        "mediaInfos": [],
+        "description": null,
+        "title": "Area Name: {DMAID}"
+      }
+    },
+    {
+      "id": "DMAs_1556",
+      "layerType": "ArcGISFeatureLayer",
+      "url": "{DMA}/0",
+      "visibility": true,
+      "opacity": 1,
+      "title": "DMA Sensors",
+      "itemId": "166944288d204597b1ead13e76efd8dd",
+      "popupInfo": {
+        "showAttachments": true,
+        "fieldInfos": [
+          {
+            "isEditable": false,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "OBJECTID",
+            "visible": false,
+            "fieldName": "OBJECTID"
+          },
+          {
+            "isEditable": true,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "Location Description",
+            "visible": true,
+            "fieldName": "LOCDESC"
+          },
+          {
+            "isEditable": true,
+            "format": {
+              "digitSeparator": true,
+              "places": 0
+            },
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "Enabled",
+            "visible": true,
+            "fieldName": "Enabled"
+          },
+          {
+            "isEditable": true,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "Site Name",
+            "visible": true,
+            "fieldName": "FACILITYID"
+          },
+          {
+            "isEditable": false,
+            "format": null,
+            "stringFieldOption": "textbox",
+            "tooltip": "",
+            "label": "",
+            "visible": false,
+            "fieldName": "GlobalID"
+          }
+        ],
+        "mediaInfos": [],
+        "description": null,
+        "title": "DMA Sensors: {LOCDESC}"
+      }
+    }
+  ],
+  "baseMap": {
+    "baseMapLayers": [
+      {
+        "id": "defaultBasemap",
+        "layerType": "ArcGISTiledMapServiceLayer",
+        "opacity": 1,
+        "visibility": true,
+        "url": "http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer"
+      }
+    ],
+    "title": "Topographic"
+  },
+  "spatialReference": {
+    "wkid": 102100,
+    "latestWkid": 3857
+  },
+  "version": "2.0",
+  "applicationProperties": {
+    "viewing": {
+      "routing": {
+        "enabled": true
+      },
+      "basemapGallery": {
+        "enabled": true
+      },
+      "measure": {
+        "enabled": true
+      }
+    }
+  }
+}

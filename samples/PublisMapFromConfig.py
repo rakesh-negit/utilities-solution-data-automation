@@ -63,9 +63,10 @@ if __name__ == "__main__":
                                 resultFS = arh.publishFsFromMXD(fs_config=config['PublishingDetails']['FeatureServices'])
                                 if arh.valid:
                                     if 'MapDetails' in config['PublishingDetails']:
-                                        resultMap = arh.publishMap(maps_info=config['PublishingDetails']['MapDetails'],fsInfo=resultFS)
-                                        if resultMap != None:
-                                            for maps in resultMap:
+                                        resultMaps = arh.publishMap(maps_info=config['PublishingDetails']['MapDetails'],fsInfo=resultFS)                                   
+                                        if resultMaps != None:
+                                            resultApps = arh.publishApp(app_info=config['PublishingDetails']['AppDetails'],map_info=resultMaps)    
+                                            for maps in resultMaps:
                                                 if 'id' in maps:
                                                     webmaps.append(maps['id'])                                                  
                                             

@@ -1,9 +1,8 @@
 {
   "PublishingDetails": {
-    "Type": "Map",
     "FeatureServices": [
       {
-        "ReplaceTag":"DMA",    
+        "ReplaceTag": "DMA",
         "Mxd": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Maps and GDBs/DMAs.mxd",
         "DateTimeFormat": "%m-%d-%Y",
         "Title": "DMAs",
@@ -20,6 +19,7 @@
     ],
     "MapDetails": [
       {
+        "ReplaceTag": "DMAAll",
         "Type": "Web Map",
         "typeKeywords": [
           "ArcGIS Online",
@@ -43,8 +43,46 @@
         "Summary": "Map showing all DMAs and Sub DMAS",
         "Description": "This map contains DMAs, Sub DMAs, and the Sub DMAs boundary points.",
         "Tags": "DMA, SubDMA,Water Loss",
-        "Extent": "-88.1822,41.7561,-88.1188,41.7857",
-        "ItemJSON": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/portal_item_defs/SubDMAMap.json",
+        "Extent": "-88.4143,41.6323,-87.9072,41.8526",
+        "ItemJSON": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/portal_item_defs/DMAs.json",
+        "UpdateService": "true",
+        "UpdateItemContents": "true",
+        "ShareEveryone": "false",
+        "ShareOrg": "true",
+        "Groups": [
+          "Customer Service, Finance, Billing & Accounting",
+          "Central Services"
+        ],
+        "Folder": "DMAs",
+        "Thumbnail": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/icons/wtr-subdma-map.png"
+      },
+      {
+        "ReplaceTag": "DMAUpdater",
+        "Type": "Web Map",
+        "typeKeywords": [
+          "ArcGIS Online",
+          "Collector",
+          "Data Editing",
+          "Explorer Web Map",
+          "Map",
+          "Offline",
+          "Online Map",
+          "Web Map"
+        ],
+        "ReplaceInfo": [
+          {
+            "SearchString": "{DMA}",
+            "ReplaceString": "DMA",
+            "ReplaceType": "Layer"
+          }
+        ],
+        "Title": "DMA Updater",
+        "DateTimeFormat": "%m-%d-%Y",
+        "Summary": "Map showing all DMAs and Sub DMAS",
+        "Description": "This map contains DMAs, Sub DMAs, and the Sub DMAs boundary points.",
+        "Tags": "DMA, SubDMA,Water Loss",
+        "Extent": "-88.4143,41.6323,-87.9072,41.8526",
+        "ItemJSON": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/portal_item_defs/DMAUpdater.json",
         "UpdateService": "true",
         "UpdateItemContents": "true",
         "ShareEveryone": "false",
@@ -57,11 +95,39 @@
         "Thumbnail": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/icons/wtr-subdma-map.png"
       }
     ],
-    
-    "Credentials": {
-      "Username": "Username",
-      "Password": "Password",
-      "Portal": ""
-    }
+    "AppDetails": [
+      {
+        "Type": "Web Mapping Application",
+        "typeKeywords": [
+          "JavaScript",
+          "Map",
+          "Mapping Site",
+          "Online Map",
+          "Web Map"
+        ],
+        "ReplaceInfo": [
+          {
+            "SearchString": "{MapID}",
+            "ReplaceString": "DMAUpdater",
+            "ReplaceType": "Map"
+          }
+        ],
+        "Title": "DMA Updater",
+        "Url": "http://arcgissolutionsdemo.maps.arcgis.com/apps/Solutions/s2.html?appid={AppID}",
+        "DateTimeFormat": "%m-%Y",
+        "Summary": "App to update DMAs and SubDMAs",
+        "Description": "App to update DMAs and SubDMAs",
+        "Tags": "DMA",
+        "ItemJSON": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/portal_item_defs/DMAUpdaterApp.json",
+        "ShareEveryone": "false",
+        "ShareOrg": "true",
+        "Groups": [
+          "Customer Service, Finance, Billing & Accounting",
+          "Central Services"
+        ],
+        "Folder": "DMAs",
+        "Thumbnail": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/icons/wtr-subdma-map.png"
+      }
+    ]
   }
 }

@@ -1,0 +1,11 @@
+{
+  "source": "903df759e9544d7bb6a1215685c65a75",
+  "folderId": "da996fb951ed4d5ba44d9c4a0e122e53",
+  "values": {
+    "webmap": "{MapID}",
+    "featureSearcher.searchLayersString": "[{\"id\":\"DMAs_9058\",\"fields\":[\"DMAID\"],\"type\":\"FeatureLayer\"},{\"id\":\"DMAs_1556\",\"fields\":[\"TYPE\"],\"type\":\"FeatureLayer\"}]",
+    "featureSearcher.displayLayersString": "[{\"id\":\"DMAs_9058\",\"fields\":[\"DMAID\",\"TYPE\"],\"type\":\"FeatureLayer\"},{\"id\":\"DMAs_1556\",\"fields\":[\"TYPE\",\"DMAID\"],\"type\":\"FeatureLayer\"}]",
+    "filter.fieldname1": "DMAID",
+    "colorizer.theme": "WarmBrights"
+  }
+}

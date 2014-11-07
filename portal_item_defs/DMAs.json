@@ -1,0 +1,294 @@
+{
+  "operationalLayers": [
+    {
+      "id": "DMA_1075",
+      "layerType": "ArcGISFeatureLayer",
+      "url": "{DMA}/2",
+      "visibility": true,
+      "opacity": 1,
+      "title": "District Metered Areas",
+      "itemId": "bec0da1bf025422885b12b2920922009",
+      "popupInfo": {
+        "title": "Area Name: {DMAID}",
+        "fieldInfos": [
+          {
+            "fieldName": "OBJECTID",
+            "label": "OBJECTID",
+            "isEditable": false,
+            "tooltip": "",
+            "visible": false,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "DMAID",
+            "label": "DMA Identifier",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "INMETERS",
+            "label": "List of Input Meters",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "OUTMETERS",
+            "label": "List of Ouput Meters",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "RESCUST",
+            "label": "Count of Residental Customers",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": {
+              "places": 0,
+              "digitSeparator": true
+            },
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "COMCUST",
+            "label": "Count of Commercial Customers",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": {
+              "places": 0,
+              "digitSeparator": true
+            },
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "GPM",
+            "label": "Nighttime GPM",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": {
+              "places": 2,
+              "digitSeparator": true
+            },
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "TYPE",
+            "label": "DMA Type",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "STATUS",
+            "label": "Status",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "GPMTime",
+            "label": "GPM Time",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": {
+              "dateFormat": "longMonthDayYear"
+            },
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "GlobalID",
+            "label": "",
+            "isEditable": false,
+            "tooltip": "",
+            "visible": false,
+            "format": null,
+            "stringFieldOption": "textbox"
+          }
+        ],
+        "description": null,
+        "showAttachments": true,
+        "mediaInfos": []
+      }
+    },
+    {
+      "id": "DMA_6841",
+      "layerType": "ArcGISFeatureLayer",
+      "url": "{DMA}/1",
+      "visibility": true,
+      "opacity": 1,
+      "title": "DMA Devices",
+      "itemId": "bec0da1bf025422885b12b2920922009",
+      "popupInfo": {
+        "title": "DMA Devices: {TYPE}",
+        "fieldInfos": [
+          {
+            "fieldName": "OBJECTID",
+            "label": "OBJECTID",
+            "isEditable": false,
+            "tooltip": "",
+            "visible": false,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "TYPE",
+            "label": "Type",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "DMAID",
+            "label": "DMA ID",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "FACILITYKEY",
+            "label": "Asset Id",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "GlobalID",
+            "label": "",
+            "isEditable": false,
+            "tooltip": "",
+            "visible": false,
+            "format": null,
+            "stringFieldOption": "textbox"
+          }
+        ],
+        "description": null,
+        "showAttachments": true,
+        "mediaInfos": []
+      }
+    },
+    {
+      "id": "DMA_9822",
+      "layerType": "ArcGISFeatureLayer",
+      "url": "{DMA}/0",
+      "visibility": true,
+      "opacity": 1,
+      "title": "DMA Sensors",
+      "itemId": "bec0da1bf025422885b12b2920922009",
+      "popupInfo": {
+        "title": "DMA Sensors: {LOCDESC}",
+        "fieldInfos": [
+          {
+            "fieldName": "OBJECTID",
+            "label": "OBJECTID",
+            "isEditable": false,
+            "tooltip": "",
+            "visible": false,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "LOCDESC",
+            "label": "Location Description",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "Enabled",
+            "label": "Enabled",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": {
+              "places": 0,
+              "digitSeparator": true
+            },
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "FACILITYID",
+            "label": "Site Name",
+            "isEditable": true,
+            "tooltip": "",
+            "visible": true,
+            "format": null,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "GlobalID",
+            "label": "",
+            "isEditable": false,
+            "tooltip": "",
+            "visible": false,
+            "format": null,
+            "stringFieldOption": "textbox"
+          }
+        ],
+        "description": null,
+        "showAttachments": true,
+        "mediaInfos": []
+      }
+    }
+  ],
+  "baseMap": {
+    "baseMapLayers": [
+      {
+        "id": "defaultBasemap",
+        "layerType": "ArcGISTiledMapServiceLayer",
+        "opacity": 1,
+        "visibility": true,
+        "url": "http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer"
+      }
+    ],
+    "title": "Topographic"
+  },
+  "spatialReference": {
+    "wkid": 102100
+  },
+  "version": "2.0",
+  "tables": [
+    {
+      "url": "{DMA}/3",
+      "id": "DMA_3271",
+      "title": "DMA History"
+    }
+  ],
+  "applicationProperties": {
+    "viewing": {
+      "routing": {
+        "enabled": true
+      },
+      "basemapGallery": {
+        "enabled": true
+      },
+      "measure": {
+        "enabled": true
+      }
+    }
+  }
+}
