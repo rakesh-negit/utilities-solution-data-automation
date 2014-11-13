@@ -1,5 +1,5 @@
 import os
-
+import sys
 import json
 import inspect
 import random
@@ -134,7 +134,15 @@ def init_log(log_file,):
         pass
     return log
 
+#----------------------------------------------------------------------
+class Tee(object):
+    """ Combines standard output with a file for logging"""
 
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
 #----------------------------------------------------------------------
 def init_localization():
     '''prepare l10n'''
