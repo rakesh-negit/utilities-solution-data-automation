@@ -5,11 +5,111 @@ dateTimeFormat = '%Y-%m-%d %H:%M'
 import arcrest
 from arcrest.agol import FeatureLayer
 from arcrest.agol import FeatureService
+from arcrest.hostedservice import AdminFeatureService
 import datetime
 import json
 import os
 import Common
 
+########################################################################
+class orgTools():
+    def __init__(self, 
+                 username=None, 
+                 password=None, 
+                 org_url=None,
+                 token_url = None,
+                 proxy_url=None, 
+                 proxy_port=None):
+        
+        """Constructor"""
+        self._org_url = org_url
+        self._username = username
+        self._password = password
+        self._proxy_url = proxy_url
+        self._proxy_port = proxy_port 
+        self._token_url = token_url
+        self._valid = True
+        self._message = ""                
+        if not username is None:
+            if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
+                self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
+                                                                  password=self._password, 
+                                                                  token_url=self._token_url, 
+                                                                  proxy_url=self._proxy_url, 
+                                                                  proxy_port=self._proxy_port)         
+            else:
+               
+                self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
+                                                                  password=self._password, 
+                                                                  baseOrgUrl=self._org_url, 
+                                                                  proxy_url=self._proxy_url, 
+                                                                  proxy_port=self._proxy_port)            
+        
+
+        
+    #----------------------------------------------------------------------  
+    @property
+    def message(self):
+        """ returns any messages """
+        return self._message   
+    #----------------------------------------------------------------------
+    @property
+    def valid(self):
+        """ returns boolean wether handler is valid """
+    
+        return self._valid
+    #----------------------------------------------------------------------    
+    def shareItemsToGroup(self,shareToGroupName,items=None,groups=None):
+        admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
+    
+        userCommunity = admin.community 
+        group_ids = userCommunity.getGroupIDs(groupNames=shareToGroupName)
+        results = []
+        if not items is None:
+            for item in items:        
+                item = admin.content.item(itemId = item)
+                res = item.shareItem(",".join(group_ids),everyone=False,org=False)
+                if 'error' in res:
+                    print res
+                else:
+                    print "%s shared with %s" % (item.title,shareToGroupName)
+                results.append(res)
+        if not groups is None:
+            for group in groups:
+                groupContent = admin.content.groupContent(groupId=group)
+                for result in groupContent['items']:
+                    item = admin.content.item(itemId = result['id'])
+                    res = item.shareItem(",".join(group_ids),everyone=False,org=False)
+                    if 'error' in res:
+                        print res
+                    else:
+                        print "%s shared with %s" % (result['title'],shareToGroupName)
+                    results.append(res)  
+     
+    #----------------------------------------------------------------------    
+    def createGroup(self,
+                    title,
+                    tags,
+                    description="",
+                    snippet="",
+                    phone="",
+                    access="org", sortField="title",
+                    sortOrder="asc", isViewOnly=False,
+                    isInvitationOnly=False, thumbnail=None):
+        
+        admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
+        userCommunity = admin.community
+        return userCommunity.createGroup(title=title,
+                    tags=tags,
+                    description=description,
+                    snippet=snippet,
+                    phone=phone,
+                    access=access,
+                    sortField=sortField,
+                    sortOrder=sortOrder, 
+                    isViewOnly=isViewOnly,
+                    isInvitationOnly=isInvitationOnly, 
+                    thumbnail=thumbnail)
 ########################################################################
 class resetTools():
     _username = None
@@ -37,65 +137,72 @@ class resetTools():
         _token_url = token_url
       
         if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
-            self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
-                                                              password=self._password, 
-                                                              token_url=self._token_url, 
-                                                              proxy_url=self._proxy_url, 
-                                                              proxy_port=self._proxy_port)         
+            self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=username, 
+                                                              password=password, 
+                                                              token_url=token_url, 
+                                                              proxy_url=proxy_url, 
+                                                              proxy_port=proxy_port)  
+           
         else:
            
-            self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
-                                                              password=self._password, 
-                                                              baseOrgUrl=self._org_url, 
-                                                              proxy_url=self._proxy_url, 
-                                                              proxy_port=self._proxy_port)            
+            self._securityHandler = arcrest.PortalTokenSecurityHandler(username=username, 
+                                                              password=password, 
+                                                              baseOrgUrl=org_url, 
+                                                              proxy_url=proxy_url, 
+                                                              proxy_port=proxy_port)            
         
    
 
-    def removeUserData(self,users=None, allUsers=True):
+    def removeUserData(self,users=None):
         admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
         portal = admin.portals(portalId='self')
         users = portal.users(start=1, num=100)
-      
-        for user in users['users']:
-            print user['username']
-            adminusercontent = admin.content.usercontent(username=user['username'])    
-            
-            userContent = admin.content.getUserContent(username=user['username'])
-            for userItem in userContent['items']:
-
-                print adminusercontent.deleteItems(items=userItem['id'])              
-            if 'folders' in userContent:
-                for userItem in userContent['folders']:
-                    folderContent = admin.content.getUserContent(username=user['username'],folderId=userItem['id'])
-                    for userItem in folderContent['items']:
-                        print adminusercontent.deleteItems(items=userItem['id'])  
-                        
-                    print adminusercontent.deleteFolder(folderId=userItem['id'])
-                                    
+        if users is None:
+            users = portal.users(start=1, num=100)
+              
+              
+        if users:              
+            for user in users['users']:
+                print user['username']
+                adminusercontent = admin.content.usercontent(username=user['username'])    
+                
+                userContent = admin.content.getUserContent(username=user['username'])
+                for userItem in userContent['items']:
+    
+                    print adminusercontent.deleteItems(items=userItem['id'])              
+                if 'folders' in userContent:
+                    for userItem in userContent['folders']:
+                        folderContent = admin.content.getUserContent(username=user['username'],folderId=userItem['id'])
+                        for userItem in folderContent['items']:
+                            print adminusercontent.deleteItems(items=userItem['id'])  
+                            
+                        print adminusercontent.deleteFolder(folderId=userItem['id'])
+                                        
                     
-    def removeUserGroups(self,users=None, allUsers=True):
+    def removeUserGroups(self,users=None):
         admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
         userCommunity = admin.community
         
         
         portal = admin.portals(portalId='self')
-        users = portal.users(start=1, num=100)
-        groupAdmin = userCommunity.groups
+        if users is None:
+            users = portal.users(start=1, num=100)
         
-        for user in users['users']:
-            print "Loading groups for user: %s" % user['username']
-            userCommData = userCommunity.getUserCommunity(username=user['username'])
-            
-            if 'groups' in userCommData:
-                if len(userCommData['groups']) == 0:
-                    print "No Groups Found"  
+        groupAdmin = userCommunity.groups
+        if users:        
+            for user in users['users']:
+                print "Loading groups for user: %s" % user['username']
+                userCommData = userCommunity.getUserCommunity(username=user['username'])
+                
+                if 'groups' in userCommData:
+                    if len(userCommData['groups']) == 0:
+                        print "No Groups Found"  
+                    else:
+                        for group in userCommData['groups']:
+                            if group['owner'] == user['username']:    
+                                print groupAdmin.deleteGroup(groupID=group['id'])
                 else:
-                    for group in userCommData['groups']:
-                        if group['owner'] == user['username']:    
-                            print groupAdmin.deleteGroup(groupID=group['id'])
-            else:
-                print "No Groups Found"    
+                    print "No Groups Found"    
             
     
         
@@ -193,10 +300,10 @@ class publishingtools():
             else:
                 itemInfo = {"ReplaceTag":"{WebMap}" }
                 
-            itemInfo['MapInfo']  = self._publishMap( config=map_info,
+            itemInfo['MapInfo']  = self._publishMap(config=map_info,
                                                replaceInfo=replaceInfo)
             map_results.append(itemInfo)
-            if not 'error' in itemInfo:
+            if not 'error' in itemInfo['MapInfo']['Results']:
                 print "            %s webmap created" % itemInfo['MapInfo']['Name']
             else:
                 print "            " + str(resFS)
@@ -204,7 +311,7 @@ class publishingtools():
         return map_results
     
     #----------------------------------------------------------------------               
-    def _publishMap(self,config,replaceInfo=None):
+    def _publishMap(self,config,replaceInfo=None,operationalLayers=None,tableLayers=None):
     
         name = ''
         tags = ''
@@ -215,75 +322,79 @@ class publishingtools():
     
         webmapdef_path = config['ItemJSON']
         update_service = config['UpdateService']
-
+     
         admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
         #adminusercontent = admin.content.usercontent()     
         #userCommunity = admin.community       
         #userContent = admin.content.getUserContent()
         adminusercontent = admin.content.usercontent()   
-        resultMap = {'Layers':[]}
+        resultMap = {'Layers':[],'Tables':[],'Results':None}
         with open(webmapdef_path) as json_data:
             try:
                 webmap_data = json.load(json_data)
             except:
                 raise ValueError("%s is not a valid JSON File" % webmapdef_path)
-            
-            for replaceItem in replaceInfo:
-                if replaceItem['ReplaceType'] == 'Global':
-                    webmap_data = find_replace(webmap_data,replaceItem['SearchString'],replaceItem['ReplaceString'])
-                elif replaceItem['ReplaceType'] == 'Layer':
-                    if webmap_data.has_key('tables'):
-                        opLayers = webmap_data['tables']    
-                        for opLayer in opLayers:
-                            if replaceItem['SearchString'] in opLayer['url']:
-            
-                                opLayer['url'] = opLayer['url'].replace(replaceItem['SearchString'],replaceItem['ReplaceString'])
-                                if replaceItem.has_key('ItemID'):
-                                    opLayer['itemId'] = replaceItem['ItemID']
-                                else:
-                                    opLayer['itemId'] = None
-                                    #opLayer['itemId'] = get_guid()
-            
-                                if str(update_service).upper() == "TRUE" and opLayer['itemId'] != None:
-                                    layers = []
-                                    item = admin.content.item(itemId = replaceItem['ItemID'])
-                                    response = item.itemData()
-                                    if 'layers' in response:
-                                        layers = response['layers']
-            
-                                    str(opLayer['url'] ).split("/")
-                                  
-                                    layerIdx = Common.getLayerIndex(url=opLayer['url'])
-                                    if opLayer.has_key("popupInfo"):
-                                        updatedLayer = {"id" : layerIdx ,
-                                                        "popupInfo" : opLayer["popupInfo"]
-                                                        }
+            if operationalLayers:
+                webmap_data['operationalLayers'] = operationalLayers
+            if tableLayers:
+                webmap_data['tables'] = tableLayers                
+            if replaceInfo:          
+                for replaceItem in replaceInfo:
+                    if replaceItem['ReplaceType'] == 'Global':
+                        webmap_data = find_replace(webmap_data,replaceItem['SearchString'],replaceItem['ReplaceString'])
+                    elif replaceItem['ReplaceType'] == 'Layer':
+                        if webmap_data.has_key('tables'):
+                            opLayers = webmap_data['tables']    
+                            for opLayer in opLayers:
+                                if replaceItem['SearchString'] in opLayer['url']:
+                
+                                    opLayer['url'] = opLayer['url'].replace(replaceItem['SearchString'],replaceItem['ReplaceString'])
+                                    if replaceItem.has_key('ItemID'):
+                                        opLayer['itemId'] = replaceItem['ItemID']
                                     else:
-                                        updatedLayer = None
-                                       
-                                    updated = False
-                                    for layer in layers:
-                                        if str(layer['id']) == str(layerIdx):
-                                            layer = updatedLayer
-                                            updated = True
-                                    if updated == False and not updatedLayer is None:
-                                        layers.append(updatedLayer)
-                                    if len(layers):                                
-                                        text = {
-                                            "layers" :layers
-                                        }
+                                        opLayer['itemId'] = None
+                                        #opLayer['itemId'] = get_guid()
+                
+                                    if str(update_service).upper() == "TRUE" and opLayer['itemId'] != None:
+                                        layers = []
+                                        item = admin.content.item(itemId = replaceItem['ItemID'])
+                                        response = item.itemData()
+                                        if 'layers' in response:
+                                            layers = response['layers']
+                
+                                        str(opLayer['url'] ).split("/")
+                                      
+                                        layerIdx = Common.getLayerIndex(url=opLayer['url'])
+                                        if opLayer.has_key("popupInfo"):
+                                            updatedLayer = {"id" : layerIdx ,
+                                                            "popupInfo" : opLayer["popupInfo"]
+                                                            }
+                                        else:
+                                            updatedLayer = None
+                                           
+                                        updated = False
+                                        for layer in layers:
+                                            if str(layer['id']) == str(layerIdx):
+                                                layer = updatedLayer
+                                                updated = True
+                                        if updated == False and not updatedLayer is None:
+                                            layers.append(updatedLayer)
+                                        if len(layers):                                
+                                            text = {
+                                                "layers" :layers
+                                            }
+                                            
+                                            itemParams = arcrest.manageorg.ItemParameter()
+                                            itemParams.type = "Feature Service"
+                                           
                                         
-                                        itemParams = arcrest.manageorg.ItemParameter()
-                                        itemParams.type = "Feature Service"
-                                       
-                                    
-                                        updateResults = adminusercontent.updateItem(itemId = replaceItem['ItemID'],
-                                                                    updateItemParameters=itemParams,
-                                                                    folderId=replaceItem['ItemFolder'],
-                                                                    text=json.dumps(text))       
-                                        if 'error' in updateResults:
-                                            print updateResults
-                                                  
+                                            updateResults = adminusercontent.updateItem(itemId = replaceItem['ItemID'],
+                                                                        updateItemParameters=itemParams,
+                                                                        folderId=replaceItem['ItemFolder'],
+                                                                        text=json.dumps(text))       
+                                            if 'error' in updateResults:
+                                                print updateResults
+                                                      
                     opLayers = webmap_data['operationalLayers']    
                     for opLayer in opLayers:
                         if replaceItem['SearchString'] in opLayer['url']:
@@ -337,7 +448,7 @@ class publishingtools():
             opLayers = webmap_data['operationalLayers']    
             for opLayer in opLayers:
                 opLayer['id'] = Common.getLayerName(url=opLayer['url']) + "_" + str(Common.random_int_generator(maxrange = 9999))
-                resultMap['Layers'].push({opLayer.title:opLayer['id']})
+                resultMap['Layers'].append({"Name":opLayer['title'],"ID":opLayer['id']})
                 
                 
             if webmap_data.has_key('tables'):
@@ -345,7 +456,7 @@ class publishingtools():
                 opLayers = webmap_data['tables']    
                 for opLayer in opLayers:
                     opLayer['id'] = Common.getLayerName(url=opLayer['url']) + "_" + str(Common.random_int_generator(maxrange = 9999))
-                    
+                    resultMap['Tables'].append({"Name":opLayer['title'],"ID":opLayer['id']})
                 
                 
         name = config['Title']
@@ -375,13 +486,6 @@ class publishingtools():
         itemType = config['Type']
         typeKeywords = config['typeKeywords']
     
-        
-        #itemID = agol.publishItem(name=name,tags=tags,snippet=snippet,description=description,extent=extent,
-                                   #data=webmap_data,thumbnail=thumbnail,share_everyone=everyone,share_org=orgs,share_groups=groups,
-                                   #item_type=itemType,typeKeywords=typeKeywords,folder_name=folderName,delete_existing=delete_existing)
-    
-        #return {"ItemID" : itemID, "Name" : name}
-
         if webmap_data is None:
             return None
         
@@ -414,14 +518,14 @@ class publishingtools():
         itemID = admin.content.getItemID(title=name,itemType='Web Map',userContent=folderContent)
         
         if not itemID is None:
-            resultMap = resultMap + adminusercontent.updateItem(itemId=itemID,
+            resultMap['Results'] = adminusercontent.updateItem(itemId=itemID,
                                         updateItemParameters=itemParams,
                                         folderId=folderId,
                                         text=json.dumps(webmap_data))
          
         else:
             
-            resultMap = resultMap + adminusercontent.addItem( itemParameters=itemParams,
+            resultMap['Results'] = adminusercontent.addItem( itemParameters=itemParams,
                     overwrite=True,
                     folder=folderId,
                     url=None,                    
@@ -433,16 +537,16 @@ class publishingtools():
                     text=json.dumps(webmap_data))
         
                             
-        if not 'error' in resultMap:
+        if not 'error' in resultMap['Results']:
                             
             group_ids = userCommunity.getGroupIDs(groupNames=groupNames)
-            shareResults = adminusercontent.shareItems(items=resultMap['id'],
+            shareResults = adminusercontent.shareItems(items=resultMap['Results']['id'],
                                    groups=','.join(group_ids),
                                    everyone=everyone,
                                    org=org)
             updateParams = arcrest.manageorg.ItemParameter()             
             updateParams.title = name
-            updateResults = adminusercontent.updateItem(itemId=resultMap['id'],
+            updateResults = adminusercontent.updateItem(itemId=resultMap['Results']['id'],
                                                         updateItemParameters=updateParams,
                                                         folderId=folderId)
             resultMap['folderId'] = folderId
@@ -452,7 +556,54 @@ class publishingtools():
            
 
     
-    #----------------------------------------------------------------------           
+    #----------------------------------------------------------------------     
+    def publishCombinedWebMap(self,maps_info,webmaps):
+        
+        admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
+        
+        map_results = []
+        for map_info in maps_info:
+           
+            operationalLayers = []
+            tableLayers = []
+            for webmap in webmaps:
+                item = admin.content.item(itemId=webmap)
+                response = item.itemData()    
+                if 'operationalLayers' in response:
+                                             
+                    opLays = []
+                    for opLayer in response['operationalLayers']:
+                        opLays.append(opLayer)
+                    opLays.extend(operationalLayers)
+                    operationalLayers = opLays
+                if 'tables' in response:
+                                            
+                    tblLays = []
+                    for tblLayer in response['tables']:
+                        tblLays.append(tblLayer)
+                    tblLays.extend(tableLayers)
+                    tableLayers = tblLays            
+
+            if map_info.has_key('ReplaceTag'):
+                            
+                itemInfo = {"ReplaceTag":map_info['ReplaceTag'] }
+            else:
+                itemInfo = {"ReplaceTag":"{WebMap}" }
+            
+            itemInfo['MapInfo'] = self._publishMap(config=map_info,
+                                                                   replaceInfo=None,
+                                                                   operationalLayers=operationalLayers,
+                                                                   tableLayers=tableLayers)
+                         
+            map_results.append(itemInfo)        
+            
+            if not 'error' in itemInfo['MapInfo']['Results']:
+                print "            %s webmap created" % itemInfo['MapInfo']['Name']
+            else:
+                print "            " + str(resFS)
+        return map_results
+        
+    #----------------------------------------------------------------------    
     def publishFsFromMXD(self,fs_config):
         """
             publishs a feature service from a mxd
@@ -510,7 +661,7 @@ class publishingtools():
         everyone = config['ShareEveryone']
         org = config['ShareOrg']
         groupNames = config['Groups']  #Groups are by ID. Multiple groups comma separated
-    
+        enableEditTracking = config['EnableEditTracking']
         folderName = config['Folder']
         thumbnail = config['Thumbnail']
         
@@ -636,6 +787,21 @@ class publishingtools():
                         updateResults = adminusercontent.updateItem(itemId=resultFS['services'][0]['serviceItemId'],
                                                                     updateItemParameters=updateParams,
                                                                     folderId=folderId)
+                        if enableEditTracking == True:
+                            adminFS = AdminFeatureService(url=resultFS['services'][0]['serviceurl'], securityHandler=self._securityHandler)
+                           
+                            json_dict = {'editorTrackingInfo':{}}
+                            json_dict['editorTrackingInfo']['allowOthersToDelete'] = True
+                            json_dict['editorTrackingInfo']['allowOthersToUpdate'] = True
+                            json_dict['editorTrackingInfo']['enableEditorTracking'] = True
+                            json_dict['editorTrackingInfo']['enableOwnershipAccessControl'] = False
+                            
+                            enableResults = adminFS.updateDefinition(json_dict=json.dumps(json_dict))
+                            if 'error' in enableResults:
+                                resultFS['services'][0]['messages'] = enableResults
+                                 
+                            del adminFS
+                            
                         resultFS['services'][0]['folderId'] = folderId
                         return resultFS['services'][0]
                         
@@ -663,13 +829,21 @@ class publishingtools():
             if replaceInfo != None:
         
                 for replaceItem in replaceInfo:
-                    if replaceItem['ReplaceType'] == 'Map':
                         
-                        for mapDet in map_info: 
-                            if mapDet is not None and replaceItem['ReplaceString'] == mapDet['ReplaceTag']:
-                                #replaceItem['ReplaceString'] = mapDet['MapInfo']['id']
-                                replaceItem['ItemID'] = mapDet['MapInfo']['id']
+                    for mapDet in map_info: 
+                        if mapDet.has_key('ReplaceTag'):
+                            if mapDet is not None and replaceItem['ReplaceString'] == mapDet['ReplaceTag'] and replaceItem['ReplaceType'] == 'Map':
+                                
+                                replaceItem['ItemID'] = mapDet['MapInfo']['Results']['id']
                                 replaceItem['ItemFolder'] = mapDet['MapInfo']['folderId']
+                            elif mapDet is not None and replaceItem['ReplaceType'] == 'Layer':
+                                repInfo = replaceItem['ReplaceString'].split("|")
+                                if len(repInfo) == 2:
+                                    if repInfo[0] == mapDet['ReplaceTag']:
+                                        for lay in  mapDet['MapInfo']['Layers']:
+                                            if lay["Name"] == repInfo[1]:
+                                                replaceItem['ReplaceString'] = lay["ID"] 
+                                    
                             elif replaceItem.has_key('ItemID'):
                                 if replaceItem.has_key('ItemFolder') == False:
                 
@@ -681,7 +855,7 @@ class publishingtools():
                                         else:
                                             replaceItem['ItemFolder'] = None
             
-    
+
             if appDet.has_key('ReplaceTag'):
                                
                 itemInfo = {"ReplaceTag":appDet['ReplaceTag'] }
@@ -691,8 +865,9 @@ class publishingtools():
             if appDet['Type'] == 'Web Mapping Application':
                 itemInfo['AppInfo']  = self._publishApp(config=appDet,
                                                                replaceInfo=replaceInfo)                
-            elif appDet['Type'] == 'Operations Dashboard':
-                pass
+            elif appDet['Type'] == 'Operation View':
+                itemInfo['AppInfo']  = self._publishDashboard(config=appDet,
+                                                               replaceInfo=replaceInfo)                
             else:
                 itemInfo['AppInfo']  = self._publishApp(config=appDet,
                                                replaceInfo=replaceInfo)            
@@ -732,10 +907,14 @@ class publishingtools():
                                     itemData['values']['webmap'] = replaceItem['ItemID']
                                     if 'folderId' in itemData:
                                         itemData['folderId'] = replaceItem['ItemFolder']
+                    elif replaceItem['ReplaceType'] == 'Layer' and 'ReplaceString' in replaceItem:
+                        itemData = Common.find_replace(itemData,replaceItem['SearchString'],replaceItem['ReplaceString'])
+                      
                     elif replaceItem['ReplaceType'] == 'Global':
-                        itemData = Common.find_replace(itemData,replaceItem['SearchString'],replaceItem['ItemID'])
+                        itemData = Common.find_replace(itemData,replaceItem['SearchString'],replaceItem['ReplaceString'])
                         
         else:
+            print "%s does not exist." %itemJson
             itemData = None
                         
         name = config['Title']
@@ -832,91 +1011,78 @@ class publishingtools():
            
     #----------------------------------------------------------------------
     def _publishDashboard(self,config, replaceInfo):
-        publish_info = config['PublishingDetails']
-        app_info = publish_info['AppDetails']
-        cred_info = publish_info['Credentials']
-      
-        if app_info.has_key('ReplaceInfo'):
-            replaceInfo = app_info['ReplaceInfo']
-        else:
-            replaceInfo = None
-    
-        print _("            Starting Dashboard Publishing Process")
-    
-        # AGOL Credentials
-        username = cred_info['Username']
-        password = cred_info['Password']
-        if cred_info.has_key('Portal') == False:
-            portal = ''
-        else:
-            portal = cred_info['Portal']    
-        
-        agol = admin.AGOL(username=username, password=password, org_url=portal)
-    
-        for replaceItem in replaceInfo:
-            if mapInfo is not None and replaceItem['ReplaceString'] == '{WebMap}':
-                replaceItem['ReplaceString'] = mapInfo
-    
-        name = ''
+     
         tags = ''
         description = ''
         extent = ''
     
-        item_data = ''
     
-        itemJson = app_info['ItemJSON']
+        itemJson = config['ItemJSON']
     
-        item_data= agol.itemData(item_id = mapInfo)
-        layerNamesID = {}
-        layerIDs =[]
-    
+        admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
+        adminusercontent = admin.content.usercontent()   
+         
         layerIDSwitch = []
-    
-        if 'operationalLayers' in item_data:
-            for opLayer in item_data['operationalLayers']:
-                layerNamesID[opLayer['title']] = opLayer['id']
-                layerIDs.append(opLayer['id'])
-    
-        with open(itemJson) as json_data:
-            try:
-                item_data = json.load(json_data)
-            except:
-                raise ValueError("%s is not a valid JSON File" % webmapdef_path)
-       
-            for replaceItem in replaceInfo:
-                if replaceItem['ReplaceType'] == 'Global':
-                    item_data = find_replace(item_data,replaceItem['SearchString'],replaceItem['ReplaceString'])
-                elif replaceItem['ReplaceType'] == 'MapID':  
-                    widgets = item_data['widgets']
-                    for widget in widgets:
+         
+        if os.path.exists(itemJson):
+            with open(itemJson) as json_data:
+                try:
+                    itemData = json.load(json_data)
+                except:
+                    raise ValueError("%s is not a valid JSON File" % itemJson)
+                
+                for replaceItem in replaceInfo:
+                    if replaceItem['ReplaceType'] == 'Global':
+                        itemData = find_replace(itemData,replaceItem['SearchString'],replaceItem['ReplaceString'])
+                    elif replaceItem['ReplaceType'] == 'Map' and 'ItemID' in replaceItem:
+                        item = admin.content.item(itemId=replaceItem['ItemID'])
+                        response = item.itemData()           
+                
+                        layerNamesID = {}
+                        layerIDs =[]
                     
-                        if widget.has_key('mapId'):
-                            if replaceItem['SearchString'] in widget['mapId']:
-                                widget['mapId'] = replaceItem['ReplaceString']
-                                if widget.has_key('mapTools'):
-                                    for mapTool in widget['mapTools']:
-                                        if mapTool.has_key('layerIds'):
-                                            mapTool['layerIds'] = layerIDs
-                                if widget.has_key('dataSources'):
-                                    for dataSource in widget['dataSources']:
-                                        if dataSource.has_key('layerId'):
-                                            if layerNamesID.has_key(dataSource['name']):
-                                                layerIDSwitch.append({"OrigID":dataSource['layerId'],"NewID":layerNamesID[dataSource['name']] })                                          
-                                                dataSource['layerId'] = layerNamesID[dataSource['name']]
-                                          
-                                
+                        tableNamesID = {}
+                        tableIDs =[]
+                
+                        if 'operationalLayers' in response:
+                            for opLayer in response['operationalLayers']:
+                                layerNamesID[opLayer['title']] = opLayer['id']
+                                layerIDs.append(opLayer['id'])
+                        if 'tables' in response:
+                            for opLayer in response['tables']:
+                                tableNamesID[opLayer['title']] = opLayer['id']
+                                tableIDs.append(opLayer['id']) 
+                        
+                        widgets = itemData['widgets']
+                        for widget in widgets:
+                        
+                            if widget.has_key('mapId'):
+                                if replaceItem['SearchString'] == widget['mapId']:
+                                    widget['mapId'] = replaceItem['ItemID']
+                                    if widget.has_key('mapTools'):
+                                        for mapTool in widget['mapTools']:
+                                            if mapTool.has_key('layerIds'):
+                                                mapTool['layerIds'] = layerIDs
+                                    if widget.has_key('dataSources'):
+                                        for dataSource in widget['dataSources']:
+                                            if dataSource.has_key('layerId'):
+                                                if layerNamesID.has_key(dataSource['name']):
+                                                    layerIDSwitch.append({"OrigID":dataSource['layerId'],"NewID":layerNamesID[dataSource['name']] })                                          
+                                                    dataSource['layerId'] = layerNamesID[dataSource['name']]
+                                              
+                                    
     
-        configFileAsString = json.dumps(item_data)
+        configFileAsString = json.dumps(itemData)
         for repl in layerIDSwitch:
             configFileAsString.replace(repl['OrigID'],repl['NewID'])
     
-        item_data = json.loads(configFileAsString)
+        itemData = json.loads(configFileAsString)
     
     
-        name = app_info['Title']
+        name = config['Title']
     
-        if app_info.has_key('DateTimeFormat'):
-            loc_df = app_info['DateTimeFormat']
+        if config.has_key('DateTimeFormat'):
+            loc_df = config['DateTimeFormat']
         else:
             loc_df = dateTimeFormat
     
@@ -924,27 +1090,82 @@ class publishingtools():
         name = name.replace('{DATE}',datestring)
         name = name.replace('{Date}',datestring)
     
-        description = app_info['Description']
-        tags = app_info['Tags']
-        snippet = app_info['Summary']
+        description = config['Description']
+        tags = config['Tags']
+        snippet = config['Summary']
     
-        extent = app_info['Extent']
+        
+        everyone = config['ShareEveryone']
+        org = config['ShareOrg']
+        groupNames = config['Groups']  #Groups are by ID. Multiple groups comma separated
     
-        everyone = app_info['ShareEveryone']
-        orgs = app_info['ShareOrg']
-        groups = app_info['Groups']  #Groups are by ID. Multiple groups comma separated
+        folderName = config['Folder']
+        thumbnail = config['Thumbnail']
     
-        folderName = app_info['Folder']
-        thumbnail = app_info['Thumbnail']
-    
-        itemType = app_info['Type']
-        typeKeywords = app_info['typeKeywords']
-    
-        itemID = agol.publishItem(name=name,tags=tags,snippet=snippet,description=description,extent=extent,
-                                   data=item_data,thumbnail=thumbnail,share_everyone=everyone,share_org=orgs,share_groups=groups,
-                                   item_type=itemType,typeKeywords=typeKeywords,folder_name=folderName,delete_existing=delete_existing)
-    
-        return {"ItemID" : itemID, "Name" : name}
+        itemType = config['Type']
+        typeKeywords = config['typeKeywords']
+        
+        admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
+        
+        
+        itemParams = arcrest.manageorg.ItemParameter()
+        itemParams.title = name
+        itemParams.thumbnail = thumbnail
+        itemParams.type = itemType
+        
+        itemParams.overwrite = True
+        itemParams.description = description
+        
+        itemParams.typeKeywords = typeKeywords
+        
+        adminusercontent = admin.content.usercontent()
+        userCommunity = admin.community 
+        userContent = admin.content.getUserContent()
+        
+        folderId = admin.content.getFolderID(name=folderName,userContent=userContent)
+        if folderId is None:
+            res = adminusercontent.createFolder(name=folderName)
+            if 'success' in res:
+                folderId = res['folder']['id']                 
+            else:
+                pass
+       
+        folderContent = admin.content.getUserContent(folderId=folderId)
+            
+        itemID = admin.content.getItemID(title=name,itemType=itemType,userContent=folderContent)
+        if not itemID is None:
+            resultApp = adminusercontent.updateItem(itemId=itemID,
+                                        updateItemParameters=itemParams,
+                                        folderId=folderId,
+                                        text=json.dumps(itemData))
+         
+        else:
+            
+            resultApp = adminusercontent.addItem( itemParameters=itemParams,
+                    folder=folderId,           
+                    relationshipType=None,
+                    originItemId=None,
+                    destinationItemId=None,
+                    serviceProxyParams=None,
+                    metadata=None,
+                    text=json.dumps(itemData))
+        
+                            
+        if not 'error' in resultApp:
+                            
+            group_ids = userCommunity.getGroupIDs(groupNames=groupNames)
+            shareResults = adminusercontent.shareItems(items=resultApp['id'],
+                                   groups=','.join(group_ids),
+                                   everyone=everyone,
+                                   org=org)
+            updateParams = arcrest.manageorg.ItemParameter()             
+            updateParams.title = name
+            updateResults = adminusercontent.updateItem(itemId=resultApp['id'],
+                                                        updateItemParameters=updateParams,
+                                                        folderId=folderId)
+            resultApp['folderId'] = folderId
+            resultApp['Name'] = name
+        return resultApp
     
     #----------------------------------------------------------------------
     def publish_feature_service_from_config(config):

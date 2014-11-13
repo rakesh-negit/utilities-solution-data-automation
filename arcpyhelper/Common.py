@@ -1,10 +1,11 @@
+import os
+
 import json
 import inspect
 import random
 import string
 import datetime
 from urlparse import urlparse
-
 
 def getLayerIndex(url):
     urlInfo = urlparse(url)
@@ -13,19 +14,19 @@ def getLayerIndex(url):
 
     if is_number(inx):
         return int(inx)
-#----------------------------------------------------------------------    
+    
 def getLayerName(url):
     urlInfo = urlparse(url)
     urlSplit = str(urlInfo.path).split('/')
     name = urlSplit[len(urlSplit)-3]
     return name   
-#----------------------------------------------------------------------
+
 def random_string_generator(size=6, chars=string.ascii_uppercase):
     return ''.join(random.choice(chars) for _ in range(size))
-#----------------------------------------------------------------------
+
 def random_int_generator(maxrange):
     return random.randint(0,maxrange)
-#----------------------------------------------------------------------
+
 def local_time_to_online(dt=None):
     """
        converts datetime object to a UTC timestamp for AGOL
@@ -41,7 +42,7 @@ def local_time_to_online(dt=None):
     utc_offset =  (time.altzone if is_dst else time.timezone)
 
     return (time.mktime(dt.timetuple()) * 1000) + (utc_offset * 1000)
-#----------------------------------------------------------------------
+
 def online_time_to_string(value,timeFormat):
     """
        Converts a timestamp to date/time string
@@ -70,11 +71,14 @@ def is_number(s):
     return False
 #----------------------------------------------------------------------
 def init_config_json(config_file):
-
-    #Load the config file
-    with open(config_file) as json_file:
-        json_data = json.load(json_file)
-        return unicode_convert( json_data)
+    if os.path.exists(config_file):
+        #Load the config file
+        
+        with open(config_file) as json_file:
+            json_data = json.load(json_file)
+            return unicode_convert( json_data)
+    else:
+        return None
 #----------------------------------------------------------------------
 def write_config_json(config_file, data):
     with open(config_file, 'w') as outfile:
@@ -82,15 +86,24 @@ def write_config_json(config_file, data):
       
 #----------------------------------------------------------------------
 def unicode_convert(obj):
-    """ converts unicode to anscii """
-    if isinstance(obj, dict):
-        return {unicode_convert(key): unicode_convert(value) for key, value in obj.iteritems()}
-    elif isinstance(obj, list):
-        return [unicode_convert(element) for element in obj]
-    elif isinstance(obj, unicode):
-        return obj.encode('utf-8')
-    else:
+    try:    
+        """ converts unicode to anscii """
+        
+        if isinstance(obj, dict):
+            return {unicode_convert(key): unicode_convert(value) for key, value in obj.iteritems()}
+        elif isinstance(obj, list):
+            return [unicode_convert(element) for element in obj]
+        elif isinstance(obj, unicode):
+            return obj.encode('utf-8')
+        else:
+            return obj
+    except:
         return obj
+def find_replace_string(obj,find,replace):
+    
+    obj = str(obj)
+    return string.replace(obj,find, replace)
+
 def find_replace(obj,find,replace):
     """ searchs an object and does a find and replace """
     if isinstance(obj, dict):
@@ -98,9 +111,14 @@ def find_replace(obj,find,replace):
     elif isinstance(obj, list):
         return [find_replace(element,find,replace) for element in obj]
     elif obj == find:
-        return replace
+        return unicode_convert(replace)
     else:
-        return obj     
+        try:
+            return unicode_convert(find_replace_string(obj, find, replace))
+            #obj = unicode_convert(json.loads(obj))
+            #return find_replace(obj,find,replace)
+        except:    
+            return unicode_convert(obj)
 #----------------------------------------------------------------------
 def init_log(log_file,):
 

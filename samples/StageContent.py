@@ -1,72 +1,83 @@
 import sys, os, datetime
-from arcpy import env
-from arcpyhelper import helper
 import csv
+from arcpyhelper import ArcRestHelper
+from arcpyhelper import Common
 
 
-from arcrest.agol import admin
+log_file='..//logs/CreateGroups.log'
 
-log_file='./logs/StageContent.log'
-
-configFiles=  ['./configs/config.json']
+configFiles=  ['..//configs/WaterGroups.json']
+globalLoginInfo = '..//configs/___GlobalLoginInfo.json'
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
 
 if __name__ == "__main__":
+    log = Common.init_log(log_file=log_file)
+ 
+    try:
 
-    helper.init_localization()
+        if log is None:
+            print "Log file could not be created"
 
-    log = helper.init_log(log_file=log_file)
+        print "********************Script Started********************"
+        print datetime.datetime.now().strftime(dateTimeFormat)
+        webmaps = []
+        cred_info = None
+        if os.path.isfile(globalLoginInfo):
+            loginInfo = Common.init_config_json(config_file=globalLoginInfo)
+            if 'Credentials' in loginInfo:
+                cred_info = loginInfo['Credentials']
+        if cred_info is None:
+            print "Login info not found"
+        else: 
+            arh = ArcRestHelper.orgTools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
+                                               token_url=None, 
+                                               proxy_url=None, 
+                                               proxy_port=None)
+            
+            if arh is None:
+                print "Error: Security handler not created"
+            else:
+                print "Security handler created"
+            
+                for configFile in configFiles:
+                 
+                    config = Common.init_config_json(config_file=configFile)
+                    if config is not None:
+                       
+                        print " "
+                        print "    ---------"
+                        print "        Processing config %s" % configFile
 
-    if log is None:
-        print _("Log file could not be created")
+                        contentInfo = config['ContentItems']
+                        for cont in contentInfo:
+                            content = cont['Content']
+                            group = cont['ShareToGroup']            
+            
+                            print "             Sharing content to: %s" % group
+                            if os.path.isfile(content):
+                                with open(content, 'rb') as csvfile:
+                                    items = []
+                                    groups = []
+                                    for row in csv.DictReader(csvfile,dialect='excel'):
+                                        if cont['Type'] == "Group":
+                                            groups.append(row['id'])         
+                                        elif cont['Type'] == "Items":
+                                            items.append(row['id'])
+                                    results = arh.shareItemsToGroup(shareToGroupName=group,items=items,groups=groups)
 
-    print _("********************Script Started********************")
-    print datetime.datetime.now().strftime(dateTimeFormat)
-    for configFile in configFiles:
-
-        config = helper.init_config_json(config_file=configFile)
-        if config is not None:
-            print _("  ")
-            print _("  ---------")
-            print _("    Processing config %s" % configFile)
-            cred_info = config['Credentials']
-            contentInfo = config['ContentItems']
-            username= cred_info['Username']
-            password = cred_info['Password']
-            portal = cred_info['Portal']
-            agol = admin.AGOL(username=username,password=password,org_url=portal)
-
-            for cont in contentInfo:
-                content = cont['Content']
-                group = cont['ShareToGroup']
-                print _("    Sharing content to: %s" % group)
-                if os.path.isfile(content):
-                    with open(content, 'rb') as csvfile:
-
-                        agol_groups = agol.get_group_IDs(group)
-                        if len(agol_groups) == 0:
-                            print "      %s Could not be located in the specified org" % group
-                        else:
-                            agol_groups = ",".join(agol_groups)
-                            #Disaster
-                            for row in csv.DictReader(csvfile,dialect='excel'):
-                                if cont['Type'] == "Group":
-                                    grp_content = agol.get_group_content(row['id'])
-
-                                    print "      %s Items in %s" % (len(grp_content['results']), row['id'])
-                                    for result in grp_content['results']:
-                                       print agol.enableSharing(result['id'], everyone='false', orgs='true', groups=agol_groups)
-                                elif cont['Type'] == "Items":
-
-                                    print agol.enableSharing(row['id'], everyone='false', orgs='true', groups=agol_groups)
-
-            print _("  ---------")
-
-    print datetime.datetime.now().strftime(dateTimeFormat)
-
-
-    print _("###############Script Completed#################")
-    print ""
-    if log is not None:
-        log.close()
+                        print "        Config %s completed" % configFile
+                        print "    ---------"                                            
+                    else:
+                        print "Config %s not found" % configFile
+                    
+            
+    except(TypeError,ValueError,AttributeError),e:
+        print e
+              
+    finally:
+        print datetime.datetime.now().strftime(dateTimeFormat)
+        print "###############Script Completed#################"
+        print ""
+        if log is not None:
+            log.close()
