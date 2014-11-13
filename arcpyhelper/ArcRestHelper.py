@@ -41,7 +41,7 @@ class orgTools():
                
                 self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
                                                                   password=self._password, 
-                                                                  orgUrl=self._org_url, 
+                                                                  org_url=self._org_url, 
                                                                   proxy_url=self._proxy_url, 
                                                                   proxy_port=self._proxy_port)            
         
