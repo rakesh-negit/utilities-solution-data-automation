@@ -136,7 +136,7 @@ class resetTools():
         _proxy_port = proxy_port 
         _token_url = token_url
       
-        if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
+        if org_url is None or 'www.arcgis.com' in org_url:    
             self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=username, 
                                                               password=password, 
                                                               token_url=token_url, 
@@ -147,7 +147,7 @@ class resetTools():
            
             self._securityHandler = arcrest.PortalTokenSecurityHandler(username=username, 
                                                               password=password, 
-                                                              baseOrgUrl=org_url, 
+                                                              org_url=org_url, 
                                                               proxy_url=proxy_url, 
                                                               proxy_port=proxy_port)            
         

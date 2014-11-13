@@ -23,4 +23,4 @@ proj.directory-list = [{'dirloc': loc('../../../Python27/ArcGIS10.2/Lib/site-pac
                         'recursive': True,
                         'watch_for_changes': True}]
 proj.file-type = 'shared'
-proj.main-file = loc('samples/CreateGroups.py')
+proj.main-file = loc('samples/CleanUsers.py')

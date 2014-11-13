@@ -15,7 +15,7 @@ from arcpyhelper import Common
 
 log_file='..//logs/Clean.log'
 dateTimeFormat = '%Y-%m-%d %H:%M'
-globalLoginInfo = '..//configs/___GlobalLoginInfo.json'
+globalLoginInfo = '..//configs/___GlobalLoginInfoPortal.json'
 
 if __name__ == "__main__":
     log = Common.init_log(log_file=log_file)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
             else:
                 print "Security handler created"
         
-                users = {'users':[{'username':'MikeSolutionsDemo'}]}
+                users = {'users':[{'username':cred_info['Username']}]}
                 #arh.removeUserData(users=users)
                 arh.removeUserGroups(users=users)
     except(TypeError,ValueError,AttributeError),e:
