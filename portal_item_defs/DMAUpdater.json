@@ -1,19 +1,18 @@
 {
   "operationalLayers": [
     {
-      "id": "DMAs_9058",
+      "id": "DMAs_6744",
       "layerType": "ArcGISFeatureLayer",
       "url": "{DMA}/2",
       "visibility": true,
       "opacity": 1,
       "title": "District Metered Areas",
-      "itemId": "166944288d204597b1ead13e76efd8dd",
+      "itemId": "db12cf65d2904801bc915699d1cf0aa7",
       "popupInfo": {
-        "showAttachments": true,
+        "title": "DMA Name: {DMAID}",
         "fieldInfos": [
           {
             "isEditable": false,
-            "format": null,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "OBJECTID",
@@ -22,7 +21,6 @@
           },
           {
             "isEditable": true,
-            "format": null,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "DMA Identifier",
@@ -31,24 +29,22 @@
           },
           {
             "isEditable": true,
-            "format": null,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "List of Input Meters",
-            "visible": true,
+            "visible": false,
             "fieldName": "INMETERS"
           },
           {
             "isEditable": true,
-            "format": null,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "List of Ouput Meters",
-            "visible": true,
+            "visible": false,
             "fieldName": "OUTMETERS"
           },
           {
-            "isEditable": true,
+            "isEditable": false,
             "format": {
               "digitSeparator": true,
               "places": 0
@@ -60,7 +56,7 @@
             "fieldName": "RESCUST"
           },
           {
-            "isEditable": true,
+            "isEditable": false,
             "format": {
               "digitSeparator": true,
               "places": 0
@@ -84,8 +80,7 @@
             "fieldName": "GPM"
           },
           {
-            "isEditable": true,
-            "format": null,
+            "isEditable": false,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "DMA Type",
@@ -94,53 +89,232 @@
           },
           {
             "isEditable": true,
-            "format": null,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "Status",
             "visible": true,
             "fieldName": "STATUS"
           },
-          {
-            "isEditable": true,
-            "format": {
-              "dateFormat": "longMonthDayYear"
-            },
-            "stringFieldOption": "textbox",
-            "tooltip": "",
-            "label": "GPM Time",
-            "visible": true,
-            "fieldName": "GPMTime"
-          },
+         
           {
             "isEditable": false,
-            "format": null,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "",
             "visible": false,
             "fieldName": "GlobalID"
+          },
+          {
+            "fieldName": "relationships/0/OBJECTID",
+            "label": "OBJECTID",
+            "isEditable": false,
+            "visible": false,
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/TYPE",
+            "label": "Type",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/DMAID",
+            "label": "DMA Identifier",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/FACILITYKEY",
+            "label": "Asset Id",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/GlobalID",
+            "label": "",
+            "isEditable": false,
+            "visible": false,
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/OBJECTID",
+            "label": "OBJECTID",
+            "isEditable": false,
+            "visible": false,
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/DMAID",
+            "label": "DMA Identifier",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/GPM",
+            "label": "Nighttime GPM",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "places": 2,
+              "digitSeparator": true
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/GPMTime",
+            "label": "GPM Time",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "dateFormat": "shortDateShortTime",
+              "timezone": "utc"
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/GlobalID",
+            "label": "",
+            "isEditable": false,
+            "visible": false,
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/EditDate",
+            "label": "EditDate",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "dateFormat": "shortDateShortTime",
+              "timezone": "utc"
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/Creator",
+            "label": "Creator",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "Editor",
+            "label": "Last Edited By",
+            "isEditable": false,
+            "visible": true,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "relationships/0/Editor",
+            "label": "Editor",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "EditDate",
+            "label": "Last Updated",
+            "isEditable": false,
+            "visible": true,
+            "format": {
+              "dateFormat": "shortDateShortTime",
+              "timezone": "utc"
+            }
+          },
+          {
+            "fieldName": "Creator",
+            "label": "Created By",
+            "isEditable": false,
+            "visible": true,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "CreationDate",
+            "label": "Created On",
+            "isEditable": false,
+            "visible": true,
+            "format": {
+              "dateFormat": "shortDateShortTime",
+              "timezone": "utc"
+            }
+          },
+          {
+            "fieldName": "relationships/0/CreationDate",
+            "label": "CreationDate",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "dateFormat": "shortDateShortTime",
+              "timezone": "utc"
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/CreationDate",
+            "label": "CreationDate",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "dateFormat": "shortDateShortTime",
+              "timezone": "utc"
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/Creator",
+            "label": "Creator",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/EditDate",
+            "label": "EditDate",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "dateFormat": "shortDateShortTime",
+              "timezone": "utc"
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/1/Editor",
+            "label": "Editor",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
           }
         ],
-        "mediaInfos": [],
         "description": null,
-        "title": "Area Name: {DMAID}"
+        "showAttachments": true,
+        "mediaInfos": []
       }
     },
     {
-      "id": "DMAs_1556",
+      "id": "DMAs_4349",
       "layerType": "ArcGISFeatureLayer",
       "url": "{DMA}/0",
       "visibility": true,
       "opacity": 1,
-      "title": "DMA Sensors",
-      "itemId": "166944288d204597b1ead13e76efd8dd",
+      "title": "DMA Boundaries",
+      "itemId": "db12cf65d2904801bc915699d1cf0aa7",
       "popupInfo": {
-        "showAttachments": true,
+        "title": "{TYPE}",
         "fieldInfos": [
           {
             "isEditable": false,
-            "format": null,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "OBJECTID",
@@ -148,49 +322,138 @@
             "fieldName": "OBJECTID"
           },
           {
-            "isEditable": true,
-            "format": null,
-            "stringFieldOption": "textbox",
-            "tooltip": "",
-            "label": "Location Description",
-            "visible": true,
-            "fieldName": "LOCDESC"
-          },
-          {
-            "isEditable": true,
-            "format": {
-              "digitSeparator": true,
-              "places": 0
-            },
-            "stringFieldOption": "textbox",
-            "tooltip": "",
-            "label": "Enabled",
-            "visible": true,
-            "fieldName": "Enabled"
-          },
-          {
-            "isEditable": true,
-            "format": null,
-            "stringFieldOption": "textbox",
-            "tooltip": "",
-            "label": "Site Name",
-            "visible": true,
-            "fieldName": "FACILITYID"
-          },
-          {
             "isEditable": false,
-            "format": null,
             "stringFieldOption": "textbox",
             "tooltip": "",
             "label": "",
             "visible": false,
             "fieldName": "GlobalID"
+          },
+          {
+            "fieldName": "DMAID",
+            "label": "DMA Identifier",
+            "isEditable": true,
+            "visible": true,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "FACILITYKEY",
+            "label": "Asset Id",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "relationships/0/GlobalID",
+            "label": "",
+            "isEditable": false,
+            "visible": false,
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/OBJECTID",
+            "label": "OBJECTID",
+            "isEditable": false,
+            "visible": false,
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/DMAID",
+            "label": "DMA Identifier",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/INMETERS",
+            "label": "List of Input Meters",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "TYPE",
+            "label": "Type",
+            "isEditable": true,
+            "visible": true,
+            "stringFieldOption": "textbox"
+          },
+          {
+            "fieldName": "relationships/0/RESCUST",
+            "label": "Count of Residental Customers",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "places": 0,
+              "digitSeparator": true
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/COMCUST",
+            "label": "Count of Commercial Customers",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "places": 0,
+              "digitSeparator": true
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/GPM",
+            "label": "Nighttime GPM",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "places": 2,
+              "digitSeparator": true
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/TYPE",
+            "label": "DMA Type",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/STATUS",
+            "label": "Status",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/GPMTime",
+            "label": "GPM Time",
+            "isEditable": false,
+            "visible": false,
+            "format": {
+              "dateFormat": "shortDateShortTime",
+              "timezone": "utc"
+            },
+            "statisticType": "count"
+          },
+          {
+            "fieldName": "relationships/0/OUTMETERS",
+            "label": "List of Ouput Meters",
+            "isEditable": false,
+            "visible": false,
+            "stringFieldOption": "textbox",
+            "statisticType": "count"
           }
         ],
-        "mediaInfos": [],
         "description": null,
-        "title": "DMA Sensors: {LOCDESC}"
-      }
+        "showAttachments": true,
+        "mediaInfos": []
+      },
+      "capabilities": "Query,Sync"
     }
   ],
   "baseMap": {
@@ -206,8 +469,7 @@
     "title": "Topographic"
   },
   "spatialReference": {
-    "wkid": 102100,
-    "latestWkid": 3857
+    "wkid": 102100
   },
   "version": "2.0",
   "applicationProperties": {

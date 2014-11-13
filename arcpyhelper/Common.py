@@ -5,6 +5,7 @@ import string
 import datetime
 from urlparse import urlparse
 
+
 def getLayerIndex(url):
     urlInfo = urlparse(url)
     urlSplit = str(urlInfo.path).split('/')
@@ -12,19 +13,19 @@ def getLayerIndex(url):
 
     if is_number(inx):
         return int(inx)
-    
+#----------------------------------------------------------------------    
 def getLayerName(url):
     urlInfo = urlparse(url)
     urlSplit = str(urlInfo.path).split('/')
     name = urlSplit[len(urlSplit)-3]
     return name   
-
+#----------------------------------------------------------------------
 def random_string_generator(size=6, chars=string.ascii_uppercase):
     return ''.join(random.choice(chars) for _ in range(size))
-
+#----------------------------------------------------------------------
 def random_int_generator(maxrange):
     return random.randint(0,maxrange)
-
+#----------------------------------------------------------------------
 def local_time_to_online(dt=None):
     """
        converts datetime object to a UTC timestamp for AGOL
@@ -40,7 +41,7 @@ def local_time_to_online(dt=None):
     utc_offset =  (time.altzone if is_dst else time.timezone)
 
     return (time.mktime(dt.timetuple()) * 1000) + (utc_offset * 1000)
-
+#----------------------------------------------------------------------
 def online_time_to_string(value,timeFormat):
     """
        Converts a timestamp to date/time string

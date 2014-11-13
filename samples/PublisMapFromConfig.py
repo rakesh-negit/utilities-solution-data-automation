@@ -15,9 +15,10 @@ from arcpyhelper import Common
 
 log_file='..//logs/PublishDMA.log'
 
-configFiles=['..//configs/PublishMap.json']
+configFiles=['..//configs/StageApp.json']
 globalLoginInfo = '..//configs/___GlobalLoginInfo.json'
 dateTimeFormat = '%Y-%m-%d %H:%M'
+combinedApp = '..//configs/Dashboard.json'
 
 if __name__ == "__main__":
     env.overwriteOutput = True
@@ -65,11 +66,14 @@ if __name__ == "__main__":
                                     if 'MapDetails' in config['PublishingDetails']:
                                         resultMaps = arh.publishMap(maps_info=config['PublishingDetails']['MapDetails'],fsInfo=resultFS)                                   
                                         if resultMaps != None:
-                                            resultApps = arh.publishApp(app_info=config['PublishingDetails']['AppDetails'],map_info=resultMaps)    
+                                            if config['PublishingDetails'].has_key('AppDetails'):
+                                                resultApps = arh.publishApp(app_info=config['PublishingDetails']['AppDetails'],map_info=resultMaps)    
                                             for maps in resultMaps:
-                                                if 'id' in maps:
-                                                    webmaps.append(maps['id'])                                                  
-                                            
+                                                if 'MapInfo' in maps:
+                                                    if 'Results' in maps['MapInfo']:
+                                                        if 'id' in maps['MapInfo']['Results']:    
+                                                            webmaps.append(maps['MapInfo']['Results']['id'])                                                  
+                                        
                                 else:
                                     print arh.message
         
@@ -77,6 +81,20 @@ if __name__ == "__main__":
                         print "    ---------"
                     else:
                         print "Config %s not found" % configFile
+                if os.path.exists(combinedApp):
+                    print " "
+                    print "    ---------"
+                    print "        Processing combined config %s" % combinedApp             
+                    
+                    config = Common.init_config_json(config_file=combinedApp)
+                    combinedResults = arh.publishCombinedWebMap(maps_info=config['PublishingDetails']['MapDetails'],webmaps=webmaps)
+                    if combinedResults != None:
+                        if config['PublishingDetails'].has_key('AppDetails'):
+                            resultApps = arh.publishApp(app_info=config['PublishingDetails']['AppDetails'],map_info=combinedResults)    
+                        
+                    print "        Combined Config %s completed" % combinedApp
+                    print "    ---------"                                                            
+                    
     except(TypeError,ValueError,AttributeError),e:
         print e
               

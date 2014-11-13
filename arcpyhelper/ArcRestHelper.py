@@ -215,14 +215,13 @@ class publishingtools():
     
         webmapdef_path = config['ItemJSON']
         update_service = config['UpdateService']
-        delete_existing = False if config['UpdateItemContents'].upper() == "TRUE" else True
-    
+
         admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
         #adminusercontent = admin.content.usercontent()     
         #userCommunity = admin.community       
         #userContent = admin.content.getUserContent()
         adminusercontent = admin.content.usercontent()   
-    
+        resultMap = {'Layers':[]}
         with open(webmapdef_path) as json_data:
             try:
                 webmap_data = json.load(json_data)
@@ -338,7 +337,9 @@ class publishingtools():
             opLayers = webmap_data['operationalLayers']    
             for opLayer in opLayers:
                 opLayer['id'] = Common.getLayerName(url=opLayer['url']) + "_" + str(Common.random_int_generator(maxrange = 9999))
-            
+                resultMap['Layers'].push({opLayer.title:opLayer['id']})
+                
+                
             if webmap_data.has_key('tables'):
             
                 opLayers = webmap_data['tables']    
@@ -411,15 +412,16 @@ class publishingtools():
         folderContent = admin.content.getUserContent(folderId=folderId)
             
         itemID = admin.content.getItemID(title=name,itemType='Web Map',userContent=folderContent)
+        
         if not itemID is None:
-            resultMap = adminusercontent.updateItem(itemId=itemID,
+            resultMap = resultMap + adminusercontent.updateItem(itemId=itemID,
                                         updateItemParameters=itemParams,
                                         folderId=folderId,
                                         text=json.dumps(webmap_data))
          
         else:
             
-            resultMap = adminusercontent.addItem( itemParameters=itemParams,
+            resultMap = resultMap + adminusercontent.addItem( itemParameters=itemParams,
                     overwrite=True,
                     folder=folderId,
                     url=None,                    
@@ -854,8 +856,6 @@ class publishingtools():
         for replaceItem in replaceInfo:
             if mapInfo is not None and replaceItem['ReplaceString'] == '{WebMap}':
                 replaceItem['ReplaceString'] = mapInfo
-    
-        delete_existing = False if app_info['UpdateItemContents'].upper() == "TRUE" else True
     
         name = ''
         tags = ''

@@ -1,0 +1,91 @@
+{
+  "addInIds": [],
+  "interval": 30,
+  "intervalType": "perLayer",
+  "standaloneDataSources": [],
+  "tabletLayout": {
+    "mapWidget": "be1afe22-76e6-4749-9720-dc97b72c054f",
+    "panels": [
+      {
+        "layoutType": "panelTypeHalves",
+        "widgets": [
+          "f6952c1c-8774-43f7-94d0-1f211ea29fa9",
+          "7bda2566-e071-4a55-864e-4693c7d11a81"
+        ]
+      }
+    ]
+  },
+  "version": "1.2",
+  "widgets": [
+    {
+      "caption": "Water High/Low Consumption Map",
+      "coordinateNotation": "esriLatLong",
+      "featureActions": [],
+      "id": "be1afe22-76e6-4749-9720-dc97b72c054f",
+      "mapId": "{MapID}",
+      "dataSources": [
+        {
+          "autoUpdate": false,
+          "id": "3d236679-8cf5-46e2-a89c-5e9ab306daf3",
+          "layerId": "Current_High_Water_Consumption_Accounts_4361",
+          "mapId": "be1afe22-76e6-4749-9720-dc97b72c054f",
+          "name": "High Water Service Consumption Accounts",
+          "type": "featureLayerDataSource"
+        },
+        {
+          "autoUpdate": false,
+          "id": "1c1c76ab-8c30-4886-9caa-f10889b4cdf8",
+          "name": "High Water Service Consumption Accounts Selection",
+          "parentDataSourceId": "3d236679-8cf5-46e2-a89c-5e9ab306daf3",
+          "type": "selectionDataSource"
+        },
+        {
+          "autoUpdate": false,
+          "id": "7fa55c3d-2f24-43f7-8c7a-cb0597c9d8d4",
+          "layerId": "Current_Low_Water_Consumption_Accounts_2013",
+          "mapId": "be1afe22-76e6-4749-9720-dc97b72c054f",
+          "name": "Low Water Service Consumption Accounts",
+          "type": "featureLayerDataSource"
+        },
+        {
+          "autoUpdate": false,
+          "id": "3516507a-b314-4f79-a43d-6fd7f50b0eb0",
+          "name": "Low Water Service Consumption Accounts Selection",
+          "parentDataSourceId": "7fa55c3d-2f24-43f7-8c7a-cb0597c9d8d4",
+          "type": "selectionDataSource"
+        }
+      ],
+      "showCoordinates": false,
+      "showFeaturePopups": false,
+      "type": "mapWidget"
+    },
+    {
+      "caption": "Count of customers above average",
+      "color": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "dataSourceId": "3d236679-8cf5-46e2-a89c-5e9ab306daf3",
+      "field": "CONSUMPTION",
+      "id": "f6952c1c-8774-43f7-94d0-1f211ea29fa9",
+      "statistic": "count",
+      "type": "summaryWidget"
+    },
+    {
+      "caption": "Count of customers below average",
+      "color": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "dataSourceId": "7fa55c3d-2f24-43f7-8c7a-cb0597c9d8d4",
+      "field": "CONSUMPTION",
+      "id": "7bda2566-e071-4a55-864e-4693c7d11a81",
+      "statistic": "count",
+      "type": "summaryWidget"
+    }
+  ]
+}

@@ -7,6 +7,7 @@
         "DateTimeFormat": "%m-%d-%Y",
         "Title": "DMAs",
         "Capabilities": "Query,Create,Update,Delete,Uploads,Editing,Sync",
+        "EnableEditTracking": "true",
         "maxRecordCount": "1000",
         "ShareEveryone": "false",
         "ShareOrg": "true",
@@ -44,9 +45,8 @@
         "Description": "This map contains DMAs, Sub DMAs, and the Sub DMAs boundary points.",
         "Tags": "DMA, SubDMA,Water Loss",
         "Extent": "-88.4143,41.6323,-87.9072,41.8526",
-        "ItemJSON": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/portal_item_defs/DMAs.json",
-        "UpdateService": "true",
-        "UpdateItemContents": "true",
+        "ItemJSON": "..//portal_item_defs/DMAs.json",
+        "UpdateService": "false",
         "ShareEveryone": "false",
         "ShareOrg": "true",
         "Groups": [
@@ -82,9 +82,8 @@
         "Description": "This map contains DMAs, Sub DMAs, and the Sub DMAs boundary points.",
         "Tags": "DMA, SubDMA,Water Loss",
         "Extent": "-88.4143,41.6323,-87.9072,41.8526",
-        "ItemJSON": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/portal_item_defs/DMAUpdater.json",
-        "UpdateService": "true",
-        "UpdateItemContents": "true",
+        "ItemJSON": "..//portal_item_defs/DMAUpdater.json",
+        "UpdateService": "false",
         "ShareEveryone": "false",
         "ShareOrg": "true",
         "Groups": [
@@ -110,6 +109,15 @@
             "SearchString": "{MapID}",
             "ReplaceString": "DMAUpdater",
             "ReplaceType": "Map"
+          },
+           {
+            "SearchString": "{DMA_Layer}",
+            "ReplaceString": "DMAUpdater|District Metered Areas",
+            "ReplaceType": "Layer"
+          }, {
+            "SearchString": "{DMABoundaries_Layer}",
+            "ReplaceString": "DMAUpdater|DMA Boundaries",
+            "ReplaceType": "Layer"
           }
         ],
         "Title": "DMA Updater",
@@ -118,7 +126,7 @@
         "Summary": "App to update DMAs and SubDMAs",
         "Description": "App to update DMAs and SubDMAs",
         "Tags": "DMA",
-        "ItemJSON": "C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/portal_item_defs/DMAUpdaterApp.json",
+        "ItemJSON": "..//portal_item_defs/DMAUpdaterApp.json",
         "ShareEveryone": "false",
         "ShareOrg": "true",
         "Groups": [

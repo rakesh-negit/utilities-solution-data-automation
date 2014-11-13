@@ -1,0 +1,69 @@
+{
+  "PublishingDetails": {
+    "MapDetails": [
+      {
+        "ReplaceTag": "CombinedMap",
+        "Type": "Web Map",
+        "typeKeywords": [
+          "ArcGIS Online",
+          "Collector",
+          "Data Editing",
+          "Explorer Web Map",
+          "Map",
+          "Offline",
+          "Online Map",
+          "Web Map"
+        ],
+        "Title": "Consumption High Low",
+        "DateTimeFormat": "%m-%Y",
+        "Summary": "An app with a view of customer above and below the average",
+        "Description": "An app with a view of customer above and below the average",
+        "Tags": "Customer, Report",
+        "Extent": "-88.1822,41.7561,-88.1188,41.7857",
+        "ItemJSON": "..//portal_item_defs/CombinedMap.json",
+        "UpdateService": "false",
+        "ShareEveryone": "true",
+        "ShareOrg": "true",
+        "Groups": [
+          "Customer Service, Finance, Billing & Accounting",
+          "Central Services"
+        ],
+        "Folder": "Consumption",
+        "Thumbnail": "./icons/wtr-highlow-map.png"
+      }
+    ],
+    "AppDetails": [
+      {
+        "Type": "Operation View",
+        "typeKeywords": [
+          "Application",
+          "ArcGIS Operation View",
+          "ArcGIS Operations Dashboard",
+          "TabletLayout"
+        ],
+        "ReplaceInfo": [
+          {
+            "SearchString": "{MapID}",
+            "ReplaceString": "CombinedMap",
+            "ReplaceType": "Map"
+          }
+        ],
+        "Title": "High/Low Dashboard",
+        "DateTimeFormat": "%m-%Y",
+        "Summary": "An app with a view of customers with above and below average water consumption",
+        "Description": "An app with a view of customers with above and below average water consumption.",
+        "Tags": "Customer, Report",
+        "Extent": "-88.1822,41.7561,-88.1188,41.7857",
+        "ItemJSON": "..//portal_item_defs/Dashboard.json",
+        "ShareEveryone": "true",
+        "ShareOrg": "true",
+        "Groups": [
+          "Customer Service, Finance, Billing & Accounting",
+          "Central Services"
+        ],
+        "Folder": "Consumption",
+        "Thumbnail": "./icons/wtr-highlow-dashboard.png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "Reports": [
+    {
+      "Type": "JoinCalcAndLoad",
+      "Data": "../Maps and GDBs/ConsumptionData.csv",
+      "DataIDField": "ACCOUNTID",
+      "JoinInfo": {
+        "FeatureData": "../Maps and GDBs/Consumption.gdb/WaterDistribution/wServiceConnection",
+        "FeatureDataIDField": "ACCOUNTID"
+      },
+      "FilterSQL": "CONSUMPTION >=50000",
+      "FieldMap": [
+        {
+          "FieldName": "ACCOUNTID",
+          "TargetField": "ACCOUNTID"
+        },
+        {
+          "FieldName": "CONSUMPTION",
+          "TargetField": "CONSUMPTION"
+        },
+        {
+          "FieldName": "CRITICAL",
+          "TargetField": "CRITICAL"
+        },
+        {
+          "FieldName": "FACILITYID",
+          "TargetField": "FACILITYID"
+        }
+      ],
+      "ReportDateField": "DATETIME",
+      "ReportResultSchema": "../Maps and GDBs/Consumption.gdb/ConsumptionDataSchema",
+      "ReportResult": "../Maps and GDBs/Consumption.gdb/HighConsumptionData"
+    },
+    {
+      "Type": "JoinCalcAndLoad",
+      "Data": "../Maps and GDBs/ConsumptionData.csv",
+      "DataIDField": "ACCOUNTID",
+      "JoinInfo": {
+        "FeatureData": "../Maps and GDBs/Consumption.gdb/WaterDistribution/wServiceConnection",
+        "FeatureDataIDField": "ACCOUNTID"
+      },
+      "FilterSQL": "CONSUMPTION <=500",
+      "FieldMap": [
+        {
+          "FieldName": "ACCOUNTID",
+          "TargetField": "ACCOUNTID"
+        },
+        {
+          "FieldName": "CONSUMPTION",
+          "TargetField": "CONSUMPTION"
+        },
+        {
+          "FieldName": "CRITICAL",
+          "TargetField": "CRITICAL"
+        },
+        {
+          "FieldName": "FACILITYID",
+          "TargetField": "FACILITYID"
+        }
+      ],
+      "ReportDateField": "DATETIME",
+      "ReportResultSchema": "../Maps and GDBs/Consumption.gdb/ConsumptionDataSchema",
+      "ReportResult": "../Maps and GDBs/Consumption.gdb/LowConsumptionData"
+    }
+  ],
+  "PublishingDetails": {
+    "Type": "Map",
+    "ExistingService": [
+      {
+        "URL": "http://services2.arcgis.com/PWJUSsdoJDp7SgLj/arcgis/rest/services/Current_High_Water_Consumption_Accounts/FeatureServer/0",
+        "ReportResult": "../Maps and GDBs/Consumption.gdb/HighConsumptionData",
+        "DeleteInfo": {
+          "Delete": "true",
+          "DeleteSQL": "1=1"
+        }
+      },
+      {
+        "URL": "http://services2.arcgis.com/PWJUSsdoJDp7SgLj/arcgis/rest/services/Current_Low_Water_Consumption_Accounts/FeatureServer/0",
+        "ReportResult": "../Maps and GDBs/Consumption.gdb/LowConsumptionData",
+        "DeleteInfo": {
+          "Delete": "true",
+          "DeleteSQL": "1=1"
+        }
+      }
+    ],
+    "FeatureService": [
+      {
+        "ReplaceTag": "LowFS",
+        "Mxd": "../Maps and GDBs/LowWaterConsumption.mxd",
+        "DateTimeFormat": "%m-%d-%Y",
+        "Title": "{Date}: Low Water Consumption Accounts",
+        "Capabilities": "Query,Create,Update,Delete,Uploads,Editing,Sync",
+        "maxRecordCount": "4000",
+        "ShareEveryone": "false",
+        "ShareOrg": "true",
+        "Groups": [
+          "Central Services"
+        ],
+        "Folder": "Consumption",
+        "Thumbnail": "./icons/wtr-low-consumption-layers.png"
+      },
+      {
+        "ReplaceTag": "HighFS",
+        "Mxd": "../Maps and GDBs/HighWaterConsumption.mxd",
+        "DateTimeFormat": "%m-%d-%Y",
+        "Title": "{Date}: High Water Consumption Accounts",
+        "Capabilities": "Query,Create,Update,Delete,Uploads,Editing,Sync",
+        "maxRecordCount": "4000",
+        "ShareEveryone": "false",
+        "ShareOrg": "true",
+        "Groups": [
+          "Central Services"
+        ],
+        "Folder": "Consumption",
+        "Thumbnail": "./icons/wtr-high-consumption-layers.png"
+      }
+    ],
+    "MapDetails": [
+      {
+        "Type": "Web Map",
+        "typeKeywords": [
+          "ArcGIS Online",
+          "Collector",
+          "Data Editing",
+          "Explorer Web Map",
+          "Map",
+          "Offline",
+          "Online Map",
+          "Web Map"
+        ],
+        "ReplaceInfo": [
+          {
+            "SearchString": "{lowservice}",
+            "ReplaceString": "LowFS",
+            "ReplaceType": "Layer"
+          }
+        ],
+        "Title": "{Date}: Low Water Consumption Accounts",
+        "DateTimeFormat": "%m-%d-%Y",
+        "Summary": "Historical view of customers who water consumption is below normal levels.",
+        "Description": "This map contains a layer with customers whose water consumption is less than 500 units.  The data is archived daily.",
+        "Tags": "Customer, Consumption",
+        "Extent": "-88.1822,41.7561,-88.1188,41.7857",
+        "ItemJSON": "./portal_item_defs/LowWaterConsumption.json",
+        "UpdateService": "true",
+        "UpdateItemContents": "true",
+        "ShareEveryone": "false",
+        "ShareOrg": "true",
+        "Groups": [
+          "Customer Service, Finance, Billing & Accounting",
+          "Central Services"
+        ],
+        "Folder": "Consumption",
+        "Thumbnail": "./icons/wtr-low-consumption-map.png"
+      },
+      {
+        "Type": "Web Map",
+        "typeKeywords": [
+          "ArcGIS Online",
+          "Collector",
+          "Data Editing",
+          "Explorer Web Map",
+          "Map",
+          "Offline",
+          "Online Map",
+          "Web Map"
+        ],
+        "ReplaceInfo": [
+          {
+            "SearchString": "{highservice}",
+            "ReplaceString": "HighFS",
+            "ReplaceType": "Layer"
+          }
+        ],
+        "Title": "{Date}: High Water Consumption Accounts",
+        "DateTimeFormat": "%m-%d-%Y",
+        "Summary": "Historical view of customers who water consumption is above normal levels.",
+        "Description": "This map contains a layer with customers whose water consumption is greater than 50000 units.  The data is archived daily.",
+        "Tags": "Customer, Consumption",
+        "Extent": "-88.1822,41.7561,-88.1188,41.7857",
+        "ItemJSON": "./portal_item_defs/HighWaterConsumption.json",
+        "UpdateService": "true",
+        "UpdateItemContents": "true",
+        "ShareEveryone": "false",
+        "ShareOrg": "true",
+        "Groups": [
+          "Customer Service, Finance, Billing & Accounting",
+          "Central Services"
+        ],
+        "Folder": "Consumption",
+        "Thumbnail": "./icons/wtr-high-consumption-map.png"
+      }
+    ],
+    "Credentials": {
+      "Username": "Username",
+      "Password": "Password",
+      "Portal": ""
+    }
+  }
+}
