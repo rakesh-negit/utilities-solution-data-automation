@@ -13,15 +13,13 @@ from arcpy import env
 from arcpyhelper import ArcRestHelper
 from arcpyhelper import Common
 
-log_file='./logs/Clean.log'
+log_file='..//logs/Clean.log'
 dateTimeFormat = '%Y-%m-%d %H:%M'
-globalLoginInfo = 'C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/configs/GlobalLoginInfo.json'
+globalLoginInfo = '..//configs/___GlobalLoginInfo.json'
 
 if __name__ == "__main__":
-    env.overwriteOutput = True
-
     log = Common.init_log(log_file=log_file)
-
+ 
     try:
 
         if log is None:
@@ -29,25 +27,28 @@ if __name__ == "__main__":
 
         print "********************Script Started********************"
         print datetime.datetime.now().strftime(dateTimeFormat)
+        webmaps = []
         cred_info = None
         if os.path.isfile(globalLoginInfo):
             loginInfo = Common.init_config_json(config_file=globalLoginInfo)
             if 'Credentials' in loginInfo:
                 cred_info = loginInfo['Credentials']
-        print "    Logging in"
-        
-        arh = ArcRestHelper.resetTools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
+        if cred_info is None:
+            print "Login info not found"
+        else: 
+            arh = ArcRestHelper.resetTools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
                                            token_url=None, 
                                            proxy_url=None, 
                                            proxy_port=None)
-        
-        if arh is None:
-            print "    Log in not successful"
             
-        print "    Logged in successfully"
+            if arh is None:
+                print "Error: Security handler not created"
+            else:
+                print "Security handler created"
         
-        arh.removeUserData()
-        arh.removeUserGroups()
+                users = {'users':[{'username':'MikeSolutionsDemo'}]}
+                #arh.removeUserData(users=users)
+                arh.removeUserGroups(users=users)
     except(TypeError,ValueError,AttributeError),e:
         print e
               

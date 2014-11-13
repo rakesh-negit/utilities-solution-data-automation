@@ -121,7 +121,7 @@
           }
         ],
         "Title": "DMA Updater",
-        "Url": "http://arcgissolutionsdemo.maps.arcgis.com/apps/Solutions/s2.html?appid={AppID}",
+        "Url": "http://www.arcgis.com/apps/Solutions/s2.html?appid={AppID}",
         "DateTimeFormat": "%m-%Y",
         "Summary": "App to update DMAs and SubDMAs",
         "Description": "App to update DMAs and SubDMAs",
