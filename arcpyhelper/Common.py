@@ -9,6 +9,13 @@ import time
 import traceback
 from urlparse import urlparse
 
+
+def noneToValue(value,newValue):
+    if value is None:
+        return newValue
+    else:
+        return value
+
 def getLayerIndex(url):
     urlInfo = urlparse(url)
     urlSplit = str(urlInfo.path).split('/')

@@ -618,7 +618,7 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
                 for fld in field_map:
                     try:
 
-                        newrow.append(eval(fld["Expression"].replace("{Value}", str(noneToValue( row[0],0.0)))))
+                        newrow.append(eval(fld["Expression"].replace("{Value}", str(Common.noneToValue( row[0],0.0)))))
                     except Exception, e:
                         newrow.append(None)
                 newrow.append(row[1])
@@ -652,7 +652,7 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
     with arcpy.da.UpdateCursor(report_result,fields) as urows:
         for row in urows:
             for u in range(len(fields) - 1):
-                row[u]= eval(exp.replace('{Value}', str(noneToValue( row[u],0.0))))# {'__builtins__':{}}
+                row[u]= eval(exp.replace('{Value}', str(Common.noneToValue( row[u],0.0))))# {'__builtins__':{}}
 
             row[len(fields)-1] = strOnlineTime
             urows.updateRow(row)
@@ -690,7 +690,7 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
     with arcpy.da.UpdateCursor(report_result,fields) as urows:
         for row in urows:
             for u in range(len(fields) - 1):
-                row[u]= str(noneToValue( row[u],0.0))
+                row[u]= str(Common.noneToValue( row[u],0.0))
 
 
             row[len(fields)-1] = strOnlineTime
@@ -781,6 +781,119 @@ def FieldExist(featureclass, fieldNames):
             "synerror": synerror,
         }
                           )
+def calc_field(inputDataset,field_map,code_exp,result_field):
+    try:
+
+        replaceValList = []
+        newList =[]
+        for fld in field_map:
+            newList.append(fld['FieldName'])
+            replaceValList.append (fld['ReplaceValue'])
+        newList.append(result_field)
+        with arcpy.da.UpdateCursor(inputDataset, newList) as cursor:
+
+            for row in cursor:
+                sqlState = code_exp
+                try:
+                    for i in range(0,len(replaceValList)):
+                        sqlState = sqlState.replace(replaceValList[i],str(row[i]))
+
+                    res = eval(sqlState)
+                    row[len(newList) -1] = res
+                    cursor.updateRow(row)
+
+                except Exception:
+                    cursor.deleteRow()
+
+
+    except:
+        line, filename, synerror = trace()
+        raise HelperError({
+            "function": "calculate_age_field",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+        })
+def calculate_age_field(inputDataset,field,result_field):
+    try:
+
+
+        newList =[field,result_field]
+        with arcpy.da.UpdateCursor(inputDataset, newList) as cursor:
+
+
+            for row in cursor:
+                if row[0] == None:
+                    cursor.deleteRow()
+                else:
+                    row[1] = datetime.datetime.now().year - row[0].year
+                    cursor.updateRow(row)
+
+
+    except:
+        line, filename, synerror = trace()
+        raise HelperError({
+            "function": "calculate_age_field",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+        })
+
+def calculate_inline_stats(inputDataset,fields,result_field,stats_method):
+    """calculate_inline_stats(inputDataset,(field1, field2,..),resultField,<Min, Max, Sum, Mean>)
+
+    Calculates stats on the input table
+
+     dataset(String):
+    The specified feature class or table
+
+     fields(field1,field2,..):
+    List of fields to perform stats on
+
+     result_field:
+    Field to store the results on
+
+     stats_method:
+    Type of stats to perform
+    """
+
+    try:
+
+        lstLen = len(fields)
+        newList =deepcopy(fields)
+        newList.append(result_field)
+        with arcpy.da.UpdateCursor(inputDataset, tuple(newList)) as cursor:
+
+
+            for row in cursor:
+                row.pop(lstLen)
+                if  stats_method.upper() == "AVERAGE" or  stats_method.upper() == "AVG" or  stats_method.upper() == "MEAN":
+                    cnt = 0
+                    val = 0
+                    for i in row:
+                        if i is not None:
+                            cnt += 1
+                            val += i
+                    row.append(val/cnt)
+                elif  stats_method.upper() == "MIN" or  stats_method.upper() == "MINIMUM":
+                    minVal = min(i for i in row if i is not None)
+                    row.append(minVal)
+                elif  stats_method.upper() == "MAX" or  stats_method.upper() == "MAXIMUM":
+                    maxVal = max(i for i in row if i is not None)
+                    row.append(maxVal)
+                cursor.updateRow(row)
+
+
+    except:
+        line, filename, synerror = trace()
+        raise HelperError({
+            "function": "currentToPrevious",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+        })
+
+
 
 def deleteFC(in_datasets):
 

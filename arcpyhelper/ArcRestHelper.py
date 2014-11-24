@@ -248,7 +248,7 @@ class publishingtools():
            
             self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
                                                               password=self._password, 
-                                                              baseOrgUrl=self._org_url, 
+                                                              org_url=self._org_url, 
                                                               proxy_url=self._proxy_url, 
                                                               proxy_port=self._proxy_port)            
         
@@ -1171,45 +1171,7 @@ class publishingtools():
             resultApp['Name'] = name
         return resultApp
     
-    #----------------------------------------------------------------------
-    def publish_feature_service_from_config(config):
-        publish_info = config['PublishingDetails']
-        fs_info = publish_info['FeatureService']
-        cred_info = publish_info['Credentials']
-    
-    
-        print _("            Starting Feature Service Publishing Process")
-            # AGOL Credentials
-        username = cred_info['Username']
-        password = cred_info['Password']
-        if cred_info.has_key('Portal') == False:
-            portal = ''
-            securityHandler = arcrest.AGOLTokenSecurityHandler(username=username, password=password)    
-        else:
-            if cred_info['Portal'] == '' or cred_info['Portal'] is None:
-                portal = ''
-                securityHandler = arcrest.AGOLTokenSecurityHandler(username=username, password=password)                
-            else:
-                portal = cred_info['Portal']    
-                securityHandler = arcrest.PortalTokenSecurityHandler(username=username, 
-                                                                password=password, 
-                                                                baseOrgUrl = portal, 
-                                                                proxy_url=None, 
-                                                                proxy_port=None)
-            
-        
-        fsInfo = publishFSfromConfig(securityHandler, fs_info)
-        for res in fsInfo:
-            if not 'error' in res:
-        
-                if 'serviceurl' in res:
-                    print _("            %s created" % res['serviceurl'])
-                
-                else:
-                    print str(res)
-            else:
-                print str(res)
-        return fsInfo
+  
 ########################################################################
 class featureservicetools():
     def __init__(self, 
@@ -1240,7 +1202,7 @@ class featureservicetools():
                
                 self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
                                                                   password=self._password, 
-                                                                  baseOrgUrl=self._org_url, 
+                                                                  org_url=self._org_url, 
                                                                   proxy_url=self._proxy_url, 
                                                                   proxy_port=self._proxy_port)            
         
