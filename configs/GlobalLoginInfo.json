@@ -1,9 +1,8 @@
 {
   
     "Credentials": {
-      "Username": "",
-      "Password": "",
-      "Orgurl": "www.arcgis.com"
+      "Username": "Username",
+      "Password": "Password"
     }
   
 }

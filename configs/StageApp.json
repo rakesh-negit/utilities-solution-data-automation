@@ -1,43 +1,22 @@
 {
   "PublishingDetails": {
-     "FeatureServices": [
-      {
-        "ReplaceTag":"HighFS",    
-        "Mxd": "../Maps and GDBs/HighWaterConsumption.mxd",
-        "DateTimeFormat": "%d-%m-%Y",
-        "Title": "Current High Water Consumption Accounts",
-        "Capabilities": "Query,Create,Update,Delete,Uploads,Editing,Sync",
-        "EnableEditTracking": "false",
-        "maxRecordCount": "4000",
-        "ShareEveryone": "false",
-        "ShareOrg": "true",
-        "Groups": [
-          "Central Services"
-        ],
-        "Folder": "Consumption",
-        "Thumbnail": "./icons/wtr-high-consumption-layers.png"
-      },
-      {
-       "ReplaceTag":"LowFS",    
-        "Mxd": "../Maps and GDBs/LowWaterConsumption.mxd",
-        "DateTimeFormat": "%d-%m-%Y",
-        "Title": "Current Low Water Consumption Accounts",
-        "Capabilities": "Query,Create,Update,Delete,Uploads,Editing,Sync",
-        "EnableEditTracking": "false",
-        "maxRecordCount": "4000",
-        "ShareEveryone": "false",
-        "ShareOrg": "true",
-        "Groups": [
-          "Central Services"
-        ],
-        "Folder": "Consumption",
-        "Thumbnail": "./icons/wtr-low-consumption-layers.png"
-      }
-    ],
+    "Type": "Map",
+    "FeatureService": {
+      "Mxd": "../Maps and GDBs/CustomerComplaints.mxd",
+      "DateTimeFormat": "%d-%m-%Y",
+      "Title": "Current Customer Complaints",
+      "Capabilities" : "Query,Create,Update,Delete,Uploads,Editing,Sync",
+      "maxRecordCount": "4000",
+      "ShareEveryone": "false",
+      "ShareOrg": "true",
+      "Groups": [
+        "Central Services"
+      ],
+      "Folder": "Customer Complaints",
+      "Thumbnail": "./icons/customer-complaints-layer.png"
+    },
     "MapDetails": [
       {
-      
-        "ReplaceTag": "HighMap",
         "Type": "Web Map",
         "typeKeywords": [
           "ArcGIS Online",
@@ -51,65 +30,66 @@
         ],
         "ReplaceInfo": [
           {
-            "SearchString": "{highservice}",
-            "ReplaceString": "HighFS",
+            "SearchString": "{ServiceUrl}",
+            "ReplaceString": "{FeatureService}",
             "ReplaceType": "Layer"
           }
         ],
-        "Title": "Current High Water Consumption Accounts",
+        "Title": "Current Customer Complaints",
         "DateTimeFormat": "%d-%m-%Y",
-        "Summary": "Daily view of customers who water consumption is above normal levels.",
-        "Description": "This map contains a layer with customers whose water consumption is greater than 50000 units.  The data is updated daily.",
-        "Tags": "Customer, Consumption",
+        "Summary": "A map with customer complaints for the specified day",
+        "Description": "A map with customer complaints for the specified day",
+        "Tags": "Customer, Complaints",
         "Extent": "-88.1822,41.7561,-88.1188,41.7857",
-        "ItemJSON": "..//portal_item_defs/HighWaterConsumption.json",
-        "UpdateService": "false",
+        "ItemJSON": "./portal_item_defs/CustomerComplaints.json",
+        "UpdateService": "true",
+        "UpdateItemContents": "true",
         "ShareEveryone": "false",
         "ShareOrg": "true",
         "Groups": [
           "Customer Service, Finance, Billing & Accounting",
           "Central Services"
         ],
-        "Folder": "Consumption",
-        "Thumbnail": "./icons/wtr-high-consumption-map.png"
-      },
-      {
-       "ReplaceTag": "LowMap",
-        "Type": "Web Map",
-        "typeKeywords": [
-          "ArcGIS Online",
-          "Collector",
-          "Data Editing",
-          "Explorer Web Map",
-          "Map",
-          "Offline",
-          "Online Map",
-          "Web Map"
-        ],
-        "ReplaceInfo": [
-          {
-            "SearchString": "{lowservice}",
-            "ReplaceString": "LowFS",
-            "ReplaceType": "Layer"
-          }
-        ],
-        "Title": "Current Low Water Consumption Accounts",
-        "DateTimeFormat": "%d-%m-%Y",
-        "Summary": "Daily view of customers who water consumption is below normal levels.",
-        "Description": "This map contains a layer with customers whose water consumption is less than 500 units.  The data is updated daily.",
-        "Tags": "Customer, Consumption",
-        "Extent": "-88.1822,41.7561,-88.1188,41.7857",
-        "ItemJSON": "..//portal_item_defs/LowWaterConsumption.json",
-        "UpdateService": "false",
-        "ShareEveryone": "false",
-        "ShareOrg": "true",
-        "Groups": [
-          "Customer Service, Finance, Billing & Accounting",
-          "Central Services"
-        ],
-        "Folder": "Consumption",
-        "Thumbnail": "./icons/wtr-low-consumption-map.png"
+       "Folder": "Customer Complaints",
+        "Thumbnail":  "./icons/customer-complaints-map.png"
       }
-    ]
+    ],
+    "AppDetails": {
+      "Type": "Operation View",
+      "typeKeywords": [
+        "Application",
+        "ArcGIS Operation View",
+        "ArcGIS Operations Dashboard",
+        "TabletLayout"
+      ],
+      "ReplaceInfo": [
+        {
+          "SearchString": "{MapID}",
+          "ReplaceString": "{WebMap}",
+          "ReplaceType": "Global"
+          
+        }
+      ],
+      "Title": "Current Customer Complaints",
+      "DateTimeFormat": "%m-%Y",
+      "Summary": "An app to view customer complaints",
+      "Description": "An app to view customer complaints",
+      "Tags": "Customer, Complaints",
+      "Extent": "-88.1822,41.7561,-88.1188,41.7857",
+      "ItemJSON": "./portal_item_defs/ComplaintsDashboard.json",
+      "UpdateItemContents": "true",
+      "ShareEveryone": "false",
+      "ShareOrg": "true",
+      "Groups": [
+          "Customer Service, Finance, Billing & Accounting",
+          "Central Services"
+        ],
+      "Folder": "Customer Complaints",
+      "Thumbnail":  "./icons/customer-complaints-dashboard.png"
+    },
+    "Credentials": {
+      "Username": "Username",
+      "Password": "Password"
+    }
   }
 }

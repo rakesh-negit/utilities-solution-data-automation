@@ -4,10 +4,10 @@ from arcpyhelper import ArcRestHelper
 from arcpyhelper import Common
 
 
-log_file='..//logs/CreateGroups.log'
+log_file='..//logs/OrgContent.log'
 
 configFiles=  ['..//configs/WaterGroups.json']
-globalLoginInfo = '..//configs/___GlobalLoginInfo.json'
+globalLoginInfo = '..//configs/___GlobalLoginInfoPortal.json'
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
 

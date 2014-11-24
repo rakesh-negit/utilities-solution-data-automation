@@ -5,6 +5,8 @@ import inspect
 import random
 import string
 import datetime
+import time
+import traceback
 from urlparse import urlparse
 
 def getLayerIndex(url):

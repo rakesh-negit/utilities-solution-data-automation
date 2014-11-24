@@ -11,7 +11,8 @@ import json
 import os
 import Common
 
-########################################################################
+
+
 class orgTools():
     def __init__(self, 
                  username=None, 
@@ -77,14 +78,17 @@ class orgTools():
         if not groups is None:
             for group in groups:
                 groupContent = admin.content.groupContent(groupId=group)
-                for result in groupContent['items']:
-                    item = admin.content.item(itemId = result['id'])
-                    res = item.shareItem(",".join(group_ids),everyone=False,org=False)
-                    if 'error' in res:
-                        print res
-                    else:
-                        print "%s shared with %s" % (result['title'],shareToGroupName)
-                    results.append(res)  
+                if 'error' in groupContent:
+                    print groupContent
+                else:
+                    for result in groupContent['items']:
+                        item = admin.content.item(itemId = result['id'])
+                        res = item.shareItem(",".join(group_ids),everyone=False,org=False)
+                        if 'error' in res:
+                            print res
+                        else:
+                            print "%s shared with %s" % (result['title'],shareToGroupName)
+                        results.append(res)  
      
     #----------------------------------------------------------------------    
     def createGroup(self,

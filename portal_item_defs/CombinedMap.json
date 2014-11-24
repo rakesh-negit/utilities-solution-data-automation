@@ -1,31 +1,30 @@
 {
-  "baseMap": {
-    "baseMapLayers": [
-      {
-        "id": "defaultBasemap",
-        "layerType": "ArcGISTiledMapServiceLayer",
-        "opacity": 1,
-        "visibility": true,
-        "url": "http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer"
-      }
-    ],
-    "title": "Topographic Basemap"
-  },
-  "spatialReference": {
-    "wkid": 102100
-  },
-  "version": "2.0",
   "applicationProperties": {
     "viewing": {
+      "measure": {
+        "enabled": true
+      },
       "routing": {
         "enabled": true
       },
       "basemapGallery": {
         "enabled": true
-      },
-      "measure": {
-        "enabled": true
       }
     }
-  }
+  },
+  "operationalLayers": [
+   
+  ],
+  "baseMap": {
+    "baseMapLayers": [
+      {
+        "opacity": 0.65,
+        "url": "http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer",
+        "id": "defaultBasemap",
+        "visibility": true
+      }
+    ],
+    "title": "Topographic"
+  },
+  "version": "1.9.1"
 }
