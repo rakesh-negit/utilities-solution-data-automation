@@ -17,19 +17,19 @@ class ReportToolsError(Exception):
 def create_report_layers_using_config(config):
 
     try:
-        
+
         reports =  config['Reports']
 
         report_msg = []
         for i in reports:
             if i['Type'].upper()== "JOINCALCANDLOAD":
-                create_calcload_report(report_params=i)                                   
+                create_calcload_report(report_params=i)
             elif i['Type'].upper()== "RECLASS":
                 reporting_areas = i ['ReportingAreas']
                 if not os.path.isabs(reporting_areas):
                     reporting_areas =os.path.abspath(reporting_areas)
-        
-        
+
+
                 reporting_areas_ID_field = i ['ReportingAreasIDField']
 
                 report_msg.append(create_reclass_report(reporting_areas=reporting_areas,
@@ -39,9 +39,9 @@ def create_report_layers_using_config(config):
                 reporting_areas = i['ReportingAreas']
                 if not os.path.isabs(reporting_areas):
                     reporting_areas =os.path.abspath(reporting_areas)
-                
+
                 reporting_areas_ID_field = i['ReportingAreasIDField']
-                
+
                 report_msg.append(create_average_report(reporting_areas=reporting_areas,
                                      reporting_areas_ID_field=reporting_areas_ID_field,
                                      report_params=i))
@@ -87,13 +87,13 @@ def create_calcload_report(report_params):
 
     try:
 
-        
+
         filt_layer = "filter_layer"
 
         reporting_layer = report_params['Data']
         reporting_layer_id_field = report_params['DataIDField']
         joinInfo = report_params['JoinInfo']
-        
+
         field_map = report_params['FieldMap']
 
         sql = report_params['FilterSQL']
@@ -107,46 +107,46 @@ def create_calcload_report(report_params):
 
         #if not os.path.isabs(report_schema):
             #report_schema = os.path.abspath( report_schema)
-            
-        _tempWorkspace = env.scratchGDB    
+
+        _tempWorkspace = env.scratchGDB
         _tempTableName = Common.random_string_generator()
         _tempTableFull = os.path.join(_tempWorkspace, _tempTableName)
-        
-        
+
+
         if sql == '' or sql is None or sql == '1=1' or sql == '1==1':
             filt_layer = reporting_layer
         else:
             #arcpy.MakeQueryTable_management(in_table=reporting_layer,out_table=filt_layer,in_key_field_option="USE_KEY_FIELDS",in_key_field="#",in_field="#",where_clause=sql)
-            try:            
+            try:
                 arcpy.MakeFeatureLayer_management(reporting_layer, filt_layer, sql, "", "")
-                
-            except:      
-                try:                
+
+            except:
+                try:
                     arcpy.TableToTable_conversion(in_rows=reporting_layer,out_path=_tempWorkspace,out_name=_tempTableName)
-                                                      
-                    arcpy.MakeTableView_management(in_table=_tempTableFull, out_view= filt_layer, where_clause=sql,workspace="#",field_info="#")                
-                 
-                except:      
+
+                    arcpy.MakeTableView_management(in_table=_tempTableFull, out_view= filt_layer, where_clause=sql,workspace="#",field_info="#")
+
+                except:
                     pass
         inputCnt = int(arcpy.GetCount_management(in_rows=filt_layer)[0])
         arcpy.Copy_management(report_schema,report_result,"FeatureClass")
-                      
+
         if inputCnt == 0:
-            
+
             print "      %s was created" % report_result
         else:
 
-            _procData = calculate_load_results(feature_data = joinInfo['FeatureData'], 
-                             feature_data_id_field = joinInfo['FeatureDataIDField'],                          
-                            join_table = filt_layer, 
+            _procData = calculate_load_results(feature_data = joinInfo['FeatureData'],
+                             feature_data_id_field = joinInfo['FeatureDataIDField'],
+                            join_table = filt_layer,
                             join_table_id_field = reporting_layer_id_field,
                             report_date_field=report_date,
-                            report_result = report_result, 
+                            report_result = report_result,
                             field_map = field_map
                             )
-            
-            
-            
+
+
+
             deleteFC([_procData])
             if arcpy.Exists(_tempTableFull):
                 deleteFC([_tempTableFull])
@@ -355,94 +355,94 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         print datetime.datetime.now().strftime(dateTimeFormat)
 
 #----------------------------------------------------------------------
-def calculate_load_results(feature_data, 
-                           feature_data_id_field,                         
-                           join_table, 
+def calculate_load_results(feature_data,
+                           feature_data_id_field,
+                           join_table,
                            join_table_id_field,
                            report_date_field,
-                           report_result, 
+                           report_result,
                            field_map
                            ):
-    # one_to_many_table,one_to_many_table_id_field, one_to_many_table_feature_id_field, 
-    
+    # one_to_many_table,one_to_many_table_id_field, one_to_many_table_feature_id_field,
+
     #"OneToManyTable": "../Maps and GDBs/CustomerComplaints.gdb/CustomerToMeter",
            #"OneToManyTableDataIDField": "ACCOUNTID",
-           #"OneToManyTableFeatureDataIDField": "FACILITYID"    
+           #"OneToManyTableFeatureDataIDField": "FACILITYID"
 
     _tempWorkspace = env.scratchGDB
-    
+
     _feature_data_layer = Common.random_string_generator()
     _join_table_copy = Common.random_string_generator()
     _joinedDataFull = os.path.join(_tempWorkspace, _join_table_copy)
-    
+
     _pointsJoinedData = Common.random_string_generator()
     _pointsJoinedDataFull = os.path.join(_tempWorkspace, _pointsJoinedData)
     # Process: Make Feature Layer
     if arcpy.Exists(dataset = feature_data) == False:
         return {"Error": feature_data + " Does not exist"}
-    
+
     if arcpy.Exists(dataset = join_table) == False:
-        return {"Error": join_table + " Does not exist"}    
-    
+        return {"Error": join_table + " Does not exist"}
+
     arcpy.MakeFeatureLayer_management(in_features=feature_data, out_layer=_feature_data_layer, where_clause=None, workspace=None, field_info=None)
-    
+
     # Process: Table to Table
     arcpy.TableToTable_conversion(join_table, _tempWorkspace, _join_table_copy, "", "#", "")
-      
+
     # Process: Add Join
     arcpy.AddJoin_management(_feature_data_layer, feature_data_id_field, _joinedDataFull, join_table_id_field, "KEEP_COMMON")
-    
+
     arcpy.FeatureClassToFeatureClass_conversion(_feature_data_layer, _tempWorkspace, _pointsJoinedData, "", "", "")
 
     joinTableDesc = arcpy.Describe(_joinedDataFull)
-    joinName = str(joinTableDesc.name)    
-            
-    featureDataDesc = arcpy.Describe(feature_data)
-    featureDataName = str(featureDataDesc.name)    
+    joinName = str(joinTableDesc.name)
 
-    try:    
+    featureDataDesc = arcpy.Describe(feature_data)
+    featureDataName = str(featureDataDesc.name)
+
+    try:
         arcpy.RemoveJoin_management(_feature_data_layer, joinName)
     except:
         pass
-    
-    
+
+
     fields = []
-    tFields = []       
+    tFields = []
     layerFlds = fieldsToFieldArray(featureclass = _pointsJoinedDataFull)
-    
+
     for fld in field_map:
         if fld['FieldName'] in layerFlds:
-        
-         
-            fields.append(fld['FieldName'])            
+
+
+            fields.append(fld['FieldName'])
         elif joinName + "_" + fld['FieldName'] in layerFlds:
             fld['FieldName'] = joinName + "_" + fld['FieldName']
             fields.append( fld['FieldName'])
         elif featureDataName + "_" + fld['FieldName'] in layerFlds:
             fld['FieldName'] = featureDataName + "_" + fld['FieldName']
-            fields.append( fld['FieldName'])                
-        
-    if len(fields) != len(field_map):    
+            fields.append( fld['FieldName'])
+
+    if len(fields) != len(field_map):
         print "Field Map length does not match fields in layer, exiting"
         return
-    
+
     for fld in field_map:
-        tFields.append(fld['TargetField'])        
-    
-    
+        tFields.append(fld['TargetField'])
+
+
     tFields.append("SHAPE@")
-    
+
     fields.append("SHAPE@")
-    
+
     datefld = -1
     if report_date_field in tFields:
         datefld = tFields.index(report_date_field)
     elif report_date_field != '':
         tFields.append(report_date_field)
-        
-    icursor = arcpy.da.InsertCursor(report_result,tFields)   
+
+    icursor = arcpy.da.InsertCursor(report_result,tFields)
     strOnlineTime = Common.online_time_to_string(Common.local_time_to_online(),dateTimeFormat)
-                                                  
+
     with arcpy.da.SearchCursor(_pointsJoinedDataFull, fields) as scursor:
         for row in scursor:
             new_row=list(row)
@@ -451,11 +451,11 @@ def calculate_load_results(feature_data,
                 onlTm = local_time_to_online(dt)
                 timeStr = online_time_to_string(onlTm,dateTimeFormat)
                 new_row[datefld] = timeStr
-            elif report_date_field != '':    
-                new_row.append(strOnlineTime)  
-            icursor.insertRow(new_row)   
-        
-                    
+            elif report_date_field != '':
+                new_row.append(strOnlineTime)
+            icursor.insertRow(new_row)
+
+
 #----------------------------------------------------------------------
 def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, reporting_layer_field_map,code_exp):
     _tempWorkspace = env.scratchGDB
@@ -518,12 +518,12 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                                 newRow = deepcopy(row)
                                 newRow[len(flds) - 1] = field['FieldName']
                                 newRows.append(newRow)
-    
+
                             else:
                                 row[len(flds) - 1] = field['FieldName']
                                 val_fnd = True
                         except Exception, e:
-                            print "       %s" % e                            
+                            print "       %s" % e
                 except Exception, e:
                     print "       WARNING: %s is not valid" % str(sql_state)
 
@@ -699,8 +699,54 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
 
     deleteFC([_final_report])
 
-#----------------------------------------------------------------------    
+#----------------------------------------------------------------------
+def shapeBasedSpatialJoin(TargetLayer, JoinLayer,JoinResult):
+    if not arcpy.Exists( TargetLayer):
+        raise ValueError(TargetLayer + " does not exist")
+    if not arcpy.Exists( JoinLayer):
+        raise ValueError(JoinLayer + " does not exist")
+    # Local variables:
+    _tempWorkspace = env.scratchGDB
 
+    _targetCopyName = random_string_generator()
+    _targetCopy = os.path.join(_tempWorkspace ,_targetCopyName)
+    #JoinResult = os.path.join(_tempWorkspace ,random_string_generator())
+    _areaFieldName = random_string_generator(size=12)
+    _idenResultLayer ="polyIdenLayer"
+
+    _lenAreaFld = "SHAPE_Area"
+
+    layDetails = arcpy.Describe(TargetLayer)
+    if layDetails.shapeType == "Polygon":
+        _lenAreaFld = "Shape_Area"
+    elif layDetails.shapeType == "Polyline":
+        _lenAreaFld = "Shape_Length"
+    else:
+        return ""
+    arcpy.FeatureClassToFeatureClass_conversion(TargetLayer,_tempWorkspace,_targetCopyName,"#","","#")
+    # Process: Copy
+    # Process: Add Field
+    arcpy.AddField_management(_targetCopy, _areaFieldName, "DOUBLE", "", "", "", "", "NULLABLE", "NON_REQUIRED", "")
+
+    # Process: Calculate Field
+    arcpy.CalculateField_management(_targetCopy, _areaFieldName, "!" + _lenAreaFld +"!", "PYTHON_9.3", "")
+
+    # Process: Identity
+    arcpy.Identity_analysis(_targetCopy, JoinLayer, JoinResult, "ALL", "", "NO_RELATIONSHIPS")
+
+    # Process: Make Feature Layer
+    arcpy.MakeFeatureLayer_management(JoinResult, _idenResultLayer, "", "", "")
+
+    # Process: Select Layer By Attribute
+    arcpy.SelectLayerByAttribute_management(_idenResultLayer, "NEW_SELECTION", _lenAreaFld + " < .5 *  " + _areaFieldName)
+
+    # Process: Delete Features
+    arcpy.DeleteFeatures_management(_idenResultLayer)
+
+    deleteFC([_targetCopy])
+
+    return JoinResult
+#----------------------------------------------------------------------
 def JoinAndCalc(inputDataset, inputJoinField, joinTable, joinTableJoinField,copyFields, joinType="KEEP_ALL"):
     try:
         """
