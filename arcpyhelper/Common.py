@@ -6,6 +6,8 @@ import random
 import string
 import datetime
 import time
+import locale
+import gettext
 import traceback
 from urlparse import urlparse
 
