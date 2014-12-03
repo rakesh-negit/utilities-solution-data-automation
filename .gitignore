@@ -226,3 +226,9 @@ source/[Tt]est[Cc]onfigs/
 /*.wpu
 /*.wpu
 /*.wpr
+
+Maps and GDBs/
+portal_item_defs/
+Content/
+Groups/
+icons/
