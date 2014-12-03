@@ -699,7 +699,54 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
 
     deleteFC([_final_report])
 
-#----------------------------------------------------------------------    
+#----------------------------------------------------------------------
+def shapeBasedSpatialJoin(TargetLayer, JoinLayer,JoinResult):
+    if not arcpy.Exists( TargetLayer):
+        raise ValueError(TargetLayer + " does not exist")
+    if not arcpy.Exists( JoinLayer):
+        raise ValueError(JoinLayer + " does not exist")
+    # Local variables:
+    _tempWorkspace = env.scratchGDB
+
+    _targetCopyName = Common.random_string_generator()
+    _targetCopy = os.path.join(_tempWorkspace ,_targetCopyName)
+    #JoinResult = os.path.join(_tempWorkspace ,random_string_generator())
+    _areaFieldName = Common.random_string_generator(size=12)
+    _idenResultLayer ="polyIdenLayer"
+
+    _lenAreaFld = "SHAPE_Area"
+
+    layDetails = arcpy.Describe(TargetLayer)
+    if layDetails.shapeType == "Polygon":
+        _lenAreaFld = "Shape_Area"
+    elif layDetails.shapeType == "Polyline":
+        _lenAreaFld = "Shape_Length"
+    else:
+        return ""
+    arcpy.FeatureClassToFeatureClass_conversion(TargetLayer,_tempWorkspace,_targetCopyName,"#","","#")
+    # Process: Copy
+    # Process: Add Field
+    arcpy.AddField_management(_targetCopy, _areaFieldName, "DOUBLE", "", "", "", "", "NULLABLE", "NON_REQUIRED", "")
+
+    # Process: Calculate Field
+    arcpy.CalculateField_management(_targetCopy, _areaFieldName, "!" + _lenAreaFld +"!", "PYTHON_9.3", "")
+
+    # Process: Identity
+    arcpy.Identity_analysis(_targetCopy, JoinLayer, JoinResult, "ALL", "", "NO_RELATIONSHIPS")
+
+    # Process: Make Feature Layer
+    arcpy.MakeFeatureLayer_management(JoinResult, _idenResultLayer, "", "", "")
+
+    # Process: Select Layer By Attribute
+    arcpy.SelectLayerByAttribute_management(_idenResultLayer, "NEW_SELECTION", _lenAreaFld + " < .5 *  " + _areaFieldName)
+
+    # Process: Delete Features
+    arcpy.DeleteFeatures_management(_idenResultLayer)
+
+    deleteFC([_targetCopy])
+
+    return JoinResult
+#----------------------------------------------------------------------   
 
 def JoinAndCalc(inputDataset, inputJoinField, joinTable, joinTableJoinField,copyFields, joinType="KEEP_ALL"):
     try:
