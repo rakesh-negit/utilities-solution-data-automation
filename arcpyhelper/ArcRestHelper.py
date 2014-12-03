@@ -769,16 +769,34 @@ class publishingtools():
                 itemId=resultSD['id'],
                 publishParameters=publishParameters)                        
     
+    
+    
+    
+    
             if 'services' in resultFS:
                 if len(resultFS['services']) > 0:
                     
+                    if 'error' in resultFS['services'][0]:
+                        print "Overwrite failed, attempting to delete, then recreate"
+                        
+                        itemID = admin.content.getItemID(title=service_name,itemType='Feature Service',userContent=folderContent)  
+                        if  itemID is None:
+                            itemID = admin.content.getItemID(title=service_name_safe,itemType='Feature Service',userContent=folderContent)   
+                        
+                        if not itemID is None:
+                            delres=adminusercontent.deleteItems(items=itemID)  
+                        if error in delres:
+                            print delres
+                            return delrest
+                        print "Delete successful"
+                        
                     status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
                                                      jobId=resultFS['services'][0]['jobId'],
                                                      jobType='publish')
-                    while status['status'] == 'processing':
+                    while status['status'] == 'processing' or status['status'] == 'partial':
                         status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
                                                                              jobId=resultFS['services'][0]['jobId'],
-                                                                             jobType='publish')                        
+                                                                             jobType='publish')                                       
                     if status['status'] == 'completed':
                        
                         group_ids = userCommunity.getGroupIDs(groupNames=groupNames)
