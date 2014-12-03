@@ -24,7 +24,10 @@ Collection of Python tools to quickly create reports about your organization's a
 
 ## Installation
 
-To install the packup, run the setup.py. This should copy it to your Python's site-package folder.
+To install the package, run the setup.py.  This should copy it to your python's site-package folder.
+
+Running Installation Code:
+   c:\src>python.exe setup.py install
 
 ## Issues
 

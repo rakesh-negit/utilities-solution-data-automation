@@ -6,7 +6,7 @@ setup(
     license='Apache',
     url='www.github.com/MikeMillerGIS/solutions-data-automation',
     name='ArcPyHelper',
-    version='1.0.7',
+    version='2.0.0',
     packages=['arcpyhelper'],
     package_dir={'':''}
     )
