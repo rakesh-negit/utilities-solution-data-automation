@@ -222,3 +222,7 @@ ___*
 source/[Ss]ampleData/
 source/[Tt]est[Cc]onfigs/
 /Maps and GDBs
+/*.wpr
+/*.wpu
+/*.wpu
+/*.wpr
