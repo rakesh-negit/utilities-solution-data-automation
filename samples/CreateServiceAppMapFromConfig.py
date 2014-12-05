@@ -2,12 +2,12 @@
     @author: ArcGIS for Water Utilities
     @contact: ArcGISTeamUtilities@esri.com
     @company: Esri
-    @version: 1.0.0
-    @description: Used to stage the app in your organization.
+    @version: 1.1
+    @description: Used to create the water reports in your organization.
     @requirements: Python 2.7.x, ArcGIS 10.2.1
     @copyright: Esri, 2014
 """
-
+import gc
 import sys, os, datetime
 from arcpy import env
 from arcpyhelper import ArcRestHelper
@@ -22,13 +22,21 @@ configFiles=  ['./configs/Water_AssetsByMaterial.json',
                 './configs/Water_AssetsByDecade.json',
                 './configs/Water_HydrantStatus.json']
 
-
-               
-
-globalLoginInfo = './configs/___GlobalLoginInfo.json'
+globalLoginInfo = './configs/GlobalLoginInfo.json'
 dateTimeFormat = '%Y-%m-%d %H:%M'
 combinedApp = './configs/WaterInventoryDashboard.json'
 
+arh = None
+log = None
+webmaps = None
+cred_info = None
+loginInfo = None
+config = None 
+resultFS = None
+resultMaps = None
+resultApps = None
+combinedResults = None
+ 
 if __name__ == "__main__":
     env.overwriteOutput = True
 
@@ -104,8 +112,10 @@ if __name__ == "__main__":
 
                     print "        Combined Config %s completed" % combinedApp
                     print "    ---------"
-
+ 
     except(TypeError,ValueError,AttributeError),e:
+        print e
+    except (ReportTools.ReportToolsError),e:
         print e
     except:
         line, filename, synerror = Common.trace()
@@ -113,10 +123,46 @@ if __name__ == "__main__":
         print("error in file name: %s" % filename)
         print("with error message: %s" % synerror)
         
-
     finally:
         print datetime.datetime.now().strftime(dateTimeFormat)
         print "###############Script Completed#################"
         print ""
         if log is not None:
             log.close()
+
+        log = None
+        log_file = None       
+        configFiles = None       
+        globalLoginInfo = None
+        dateTimeFormat = None
+        combinedApp = None            
+        arh = None
+        log = None
+        webmaps = None
+        cred_info = None
+        loginInfo = None
+        config = None 
+        resultFS
+        resultMaps
+        resultApps = None
+        combinedResults = None        
+       
+        del log
+        del log_file       
+        del configFiles  
+        del globalLoginInfo
+        del dateTimeFormat
+        del combinedApp            
+        del arh
+      
+        del webmaps
+        del cred_info
+        del loginInfo
+        del config 
+        del resultFS
+        del resultMaps
+        del resultApps
+        del combinedResults                
+        
+        gc.collect
+        

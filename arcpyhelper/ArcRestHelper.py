@@ -11,7 +11,7 @@ import json
 import os
 import Common
 import sys
-
+import time
 
 class orgTools():
     def __init__(self, 
@@ -509,7 +509,7 @@ class publishingtools():
         itemParams.overwrite = True
         itemParams.description = description
         itemParams.extent = extent
-        itemParams.typeKeywords = typeKeywords
+        itemParams.typeKeywords = ",".join(typeKeywords)
         
         adminusercontent = admin.content.usercontent()
         userCommunity = admin.community 
@@ -779,15 +779,11 @@ class publishingtools():
                 itemId=resultSD['id'],
                 publishParameters=publishParameters)                        
     
-    
-    
-    
-    
             if 'services' in resultFS:
                 if len(resultFS['services']) > 0:
                     
                     if 'error' in resultFS['services'][0]:
-                        print "Overwrite failed, attempting to delete, then recreate"
+                        print "            Overwrite failed, attempting to delete, then recreate"
                         
                         itemID = admin.content.getItemID(title=service_name,itemType='Feature Service',userContent=folderContent)  
                         if  itemID is None:
@@ -795,15 +791,21 @@ class publishingtools():
                         
                         if not itemID is None:
                             delres=adminusercontent.deleteItems(items=itemID)  
-                        if error in delres:
+                        if 'error' in delres:
                             print delres
                             return delrest
-                        print "Delete successful"
-                        
+                        print "            Delete successful"
+                        resultFS = adminusercontent.publishItem(
+                                       fileType="serviceDefinition",
+                                       itemId=resultSD['id'],
+                                       publishParameters=publishParameters)                        
+                    if 'error' in resultFS:
+                          return resultFS
                     status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
                                                      jobId=resultFS['services'][0]['jobId'],
                                                      jobType='publish')
                     while status['status'] == 'processing' or status['status'] == 'partial':
+                        time.sleep(.5)
                         status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
                                                                              jobId=resultFS['services'][0]['jobId'],
                                                                              jobType='publish')                                       
@@ -993,7 +995,7 @@ class publishingtools():
             itemParams.overwrite = True
             itemParams.description = description
             
-            itemParams.typeKeywords = typeKeywords
+            itemParams.typeKeywords = ",".join(typeKeywords)
             
             adminusercontent = admin.content.usercontent()
             userCommunity = admin.community 
@@ -1031,14 +1033,14 @@ class publishingtools():
             if not 'error' in resultApp['Results']:
                                 
                 group_ids = userCommunity.getGroupIDs(groupNames=groupNames)
-                shareResults = adminusercontent.shareItems(items=resultApp['id'],
+                shareResults = adminusercontent.shareItems(items=resultApp['Results']['id'],
                                        groups=','.join(group_ids),
                                        everyone=everyone,
                                        org=org)
                 updateParams = arcrest.manageorg.ItemParameter()             
                 updateParams.title = name
-                url = url.replace("{AppID}",resultApp['id'])
-                updateResults = adminusercontent.updateItem(itemId=resultApp['id'],
+                url = url.replace("{AppID}",resultApp['Results']['id'])
+                updateResults = adminusercontent.updateItem(itemId=resultApp['Results']['id'],
                                                             url=url,        
                                                             updateItemParameters=updateParams,
                                                             folderId=folderId)
@@ -1159,7 +1161,7 @@ class publishingtools():
         itemParams.overwrite = True
         itemParams.description = description
         
-        itemParams.typeKeywords = typeKeywords
+        itemParams.typeKeywords = ",".join(typeKeywords)
         
         adminusercontent = admin.content.usercontent()
         userCommunity = admin.community 
@@ -1197,13 +1199,13 @@ class publishingtools():
         if not 'error' in resultApp['Results']:
                             
             group_ids = userCommunity.getGroupIDs(groupNames=groupNames)
-            shareResults = adminusercontent.shareItems(items=resultApp['id'],
+            shareResults = adminusercontent.shareItems(items=resultApp['Results']['id'],
                                    groups=','.join(group_ids),
                                    everyone=everyone,
                                    org=org)
             updateParams = arcrest.manageorg.ItemParameter()             
             updateParams.title = name
-            updateResults = adminusercontent.updateItem(itemId=resultApp['id'],
+            updateResults = adminusercontent.updateItem(itemId=resultApp['Results']['id'],
                                                         updateItemParameters=updateParams,
                                                         folderId=folderId)
             resultApp['folderId'] = folderId
