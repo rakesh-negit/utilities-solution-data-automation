@@ -14,9 +14,19 @@ import sys
 import time
 
 class orgTools():
+    _username = None
+    _password = None
+    _org_url = None
+    _proxy_url = None
+    _proxy_port = None
+    _token_url = None
+    _securityHandler = None
+    _valid = True
+    _message = ""        
+    #----------------------------------------------------------------------           
     def __init__(self, 
-                 username=None, 
-                 password=None, 
+                 username, 
+                 password, 
                  org_url=None,
                  token_url = None,
                  proxy_url=None, 
@@ -29,25 +39,22 @@ class orgTools():
         self._proxy_url = proxy_url
         self._proxy_port = proxy_port 
         self._token_url = token_url
-        self._valid = True
-        self._message = ""                
-        if not username is None:
-            if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
-                self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
-                                                                  password=self._password, 
-                                                                  token_url=self._token_url, 
-                                                                  proxy_url=self._proxy_url, 
-                                                                  proxy_port=self._proxy_port)         
-            else:
-               
-                self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
-                                                                  password=self._password, 
-                                                                  org_url=self._org_url, 
-                                                                  proxy_url=self._proxy_url, 
-                                                                  proxy_port=self._proxy_port)            
-        
-
-        
+        if self._org_url is None or self._org_url =='':
+            self._org_url = 'http://www.arcgis.com'
+        if self._org_url is None or '.arcgis.com' in  self._org_url:    
+            self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
+                                                              password=self._password, 
+                                                              org_url=self._org_url, 
+                                                              token_url=self._token_url, 
+                                                              proxy_url=self._proxy_url, 
+                                                              proxy_port=self._proxy_port)         
+        else:
+           
+            self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
+                                                              password=self._password, 
+                                                              org_url=self._org_url, 
+                                                              proxy_url=self._proxy_url, 
+                                                              proxy_port=self._proxy_port)   
     #----------------------------------------------------------------------  
     @property
     def message(self):
@@ -123,7 +130,9 @@ class resetTools():
     _proxy_port = None
     _token_url = None
     _securityHandler = None
-    
+    _valid = True
+    _message = ""        
+    #----------------------------------------------------------------------           
     def __init__(self, 
                  username, 
                  password, 
@@ -133,30 +142,28 @@ class resetTools():
                  proxy_port=None):
         
         """Constructor"""
-        _org_url = org_url
-        _username = username
-        _password = password
-        _proxy_url = proxy_url
-        _proxy_port = proxy_port 
-        _token_url = token_url
-      
-        if org_url is None or 'www.arcgis.com' in org_url:    
-            self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=username, 
-                                                              password=password, 
-                                                              token_url=token_url, 
-                                                              proxy_url=proxy_url, 
-                                                              proxy_port=proxy_port)  
-           
+        self._org_url = org_url
+        self._username = username
+        self._password = password
+        self._proxy_url = proxy_url
+        self._proxy_port = proxy_port 
+        self._token_url = token_url
+        if self._org_url is None or self._org_url =='':
+            self._org_url = 'http://www.arcgis.com'
+        if self._org_url is None or '.arcgis.com' in  self._org_url:    
+            self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
+                                                              password=self._password, 
+                                                              org_url=self._org_url, 
+                                                              token_url=self._token_url, 
+                                                              proxy_url=self._proxy_url, 
+                                                              proxy_port=self._proxy_port)         
         else:
            
-            self._securityHandler = arcrest.PortalTokenSecurityHandler(username=username, 
-                                                              password=password, 
-                                                              org_url=org_url, 
-                                                              proxy_url=proxy_url, 
-                                                              proxy_port=proxy_port)            
-        
-   
-
+            self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
+                                                              password=self._password, 
+                                                              org_url=self._org_url, 
+                                                              proxy_url=self._proxy_url, 
+                                                              proxy_port=self._proxy_port)   
     def removeUserData(self,users=None):
         admin = arcrest.manageorg.Administration(securityHandler=self._securityHandler)
         portal = admin.portals(portalId='self')
@@ -237,10 +244,12 @@ class publishingtools():
         self._proxy_url = proxy_url
         self._proxy_port = proxy_port 
         self._token_url = token_url
-      
-        if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
+        if self._org_url is None or self._org_url =='':
+            self._org_url = 'http://www.arcgis.com'
+        if self._org_url is None or '.arcgis.com' in  self._org_url:    
             self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
                                                               password=self._password, 
+                                                              org_url=self._org_url, 
                                                               token_url=self._token_url, 
                                                               proxy_url=self._proxy_url, 
                                                               proxy_port=self._proxy_port)         
@@ -675,7 +684,10 @@ class publishingtools():
         everyone = config['ShareEveryone']
         org = config['ShareOrg']
         groupNames = config['Groups']  #Groups are by ID. Multiple groups comma separated
-        enableEditTracking = config['EnableEditTracking']
+        if config.has_key('EnableEditTracking'):
+            enableEditTracking = config['EnableEditTracking']
+        else:
+            print "Please add an EnableEditTracking parameter to your feature service section"
         folderName = config['Folder']
         thumbnail = config['Thumbnail']
         
@@ -800,47 +812,80 @@ class publishingtools():
                                        itemId=resultSD['id'],
                                        publishParameters=publishParameters)                        
                     if 'error' in resultFS:
-                          return resultFS
+                        return resultFS
                     status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
                                                      jobId=resultFS['services'][0]['jobId'],
                                                      jobType='publish')
-                    while status['status'] == 'processing' or status['status'] == 'partial':
-                        time.sleep(.5)
-                        status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
-                                                                             jobId=resultFS['services'][0]['jobId'],
-                                                                             jobType='publish')                                       
-                    if status['status'] == 'completed':
-                       
-                        group_ids = userCommunity.getGroupIDs(groupNames=groupNames)
-                        shareResults = adminusercontent.shareItems(items=resultFS['services'][0]['serviceItemId'],
-                                               groups=','.join(group_ids),
-                                               everyone=everyone,
-                                               org=org)
-                        updateParams = arcrest.manageorg.ItemParameter()             
-                        updateParams.title = service_name
-                        updateResults = adminusercontent.updateItem(itemId=resultFS['services'][0]['serviceItemId'],
-                                                                    updateItemParameters=updateParams,
-                                                                    folderId=folderId)
-                        if enableEditTracking == True:
-                            adminFS = AdminFeatureService(url=resultFS['services'][0]['serviceurl'], securityHandler=self._securityHandler)
+                    if 'error' in status:
+                        print  "            %s" % status
+                    elif 'status' in status:
+                        while status['status'] == 'processing' or status['status'] == 'partial':
+                            time.sleep(.5)
+                            status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
+                                                                                 jobId=resultFS['services'][0]['jobId'],
+                                                                                         jobType='publish') 
+                            if 'error' in status:
+                                print status
+                        if status['status'] == 'failed':
+                            print "            Overwrite failed, attempting to delete, then recreate"
+                  
+                            delres=adminusercontent.deleteItems(items=resultFS['services'][0]['serviceItemId'])  
+                            if 'error' in delres:
+                                print delres
+                                return delrest
+                            print "            Delete successful"
+                            resultFS = adminusercontent.publishItem(
+                                           fileType="serviceDefinition",
+                                           itemId=resultSD['id'],
+                                           publishParameters=publishParameters)                        
+                            if 'error' in resultFS:
+                                return resultFS
+                            status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
+                                                                                 jobId=resultFS['services'][0]['jobId'],
+                                                                                 jobType='publish') 
+                            if 'error' in status:
+                                self._securityHandler.token
+                                print status                            
+                            while status['status'] == 'processing' or status['status'] == 'partial':
+                                time.sleep(.5)
+                                status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
+                                                                                     jobId=resultFS['services'][0]['jobId'],
+                                                                                             jobType='publish')
+                                if 'error' in status:
+                                    print status                                      
+                                             
+                        if status['status'] == 'completed':
                            
-                            json_dict = {'editorTrackingInfo':{}}
-                            json_dict['editorTrackingInfo']['allowOthersToDelete'] = True
-                            json_dict['editorTrackingInfo']['allowOthersToUpdate'] = True
-                            json_dict['editorTrackingInfo']['enableEditorTracking'] = True
-                            json_dict['editorTrackingInfo']['enableOwnershipAccessControl'] = False
-                            
-                            enableResults = adminFS.updateDefinition(json_dict=json.dumps(json_dict))
-                            if 'error' in enableResults:
-                                resultFS['services'][0]['messages'] = enableResults
-                                 
-                            del adminFS
-                            
-                        resultFS['services'][0]['folderId'] = folderId
-                        return resultFS['services'][0]
+                            group_ids = userCommunity.getGroupIDs(groupNames=groupNames)
+                            shareResults = adminusercontent.shareItems(items=resultFS['services'][0]['serviceItemId'],
+                                                   groups=','.join(group_ids),
+                                                   everyone=everyone,
+                                                   org=org)
+                            updateParams = arcrest.manageorg.ItemParameter()             
+                            updateParams.title = service_name
+                            updateResults = adminusercontent.updateItem(itemId=resultFS['services'][0]['serviceItemId'],
+                                                                        updateItemParameters=updateParams,
+                                                                        folderId=folderId)
+                            if enableEditTracking == True:
+                                adminFS = AdminFeatureService(url=resultFS['services'][0]['serviceurl'], securityHandler=self._securityHandler)
+                               
+                                json_dict = {'editorTrackingInfo':{}}
+                                json_dict['editorTrackingInfo']['allowOthersToDelete'] = True
+                                json_dict['editorTrackingInfo']['allowOthersToUpdate'] = True
+                                json_dict['editorTrackingInfo']['enableEditorTracking'] = True
+                                json_dict['editorTrackingInfo']['enableOwnershipAccessControl'] = False
+                                
+                                enableResults = adminFS.updateDefinition(json_dict=json.dumps(json_dict))
+                                if 'error' in enableResults:
+                                    resultFS['services'][0]['messages'] = enableResults
+                                     
+                                del adminFS
+                                
+                            resultFS['services'][0]['folderId'] = folderId
+                            return resultFS['services'][0]
                         
                     else:
-                        return status
+                        return status                                       
                 else:
                     return resultFS                    
             else:
@@ -1215,9 +1260,19 @@ class publishingtools():
   
 ########################################################################
 class featureservicetools():
+    _username = None
+    _password = None
+    _org_url = None
+    _proxy_url = None
+    _proxy_port = None
+    _token_url = None
+    _securityHandler = None
+    _valid = True
+    _message = ""        
+    #----------------------------------------------------------------------           
     def __init__(self, 
-                 username=None, 
-                 password=None, 
+                 username, 
+                 password, 
                  org_url=None,
                  token_url = None,
                  proxy_url=None, 
@@ -1230,25 +1285,22 @@ class featureservicetools():
         self._proxy_url = proxy_url
         self._proxy_port = proxy_port 
         self._token_url = token_url
-        self._valid = True
-        self._message = ""                
-        if not username is None:
-            if self._org_url is None or 'www.arcgis.com' in  self._org_url:    
-                self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
-                                                                  password=self._password, 
-                                                                  token_url=self._token_url, 
-                                                                  proxy_url=self._proxy_url, 
-                                                                  proxy_port=self._proxy_port)         
-            else:
-               
-                self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
-                                                                  password=self._password, 
-                                                                  org_url=self._org_url, 
-                                                                  proxy_url=self._proxy_url, 
-                                                                  proxy_port=self._proxy_port)            
-        
-
-        
+        if self._org_url is None or self._org_url =='':
+            self._org_url = 'http://www.arcgis.com'
+        if self._org_url is None or '.arcgis.com' in  self._org_url:    
+            self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
+                                                              password=self._password, 
+                                                              org_url=self._org_url, 
+                                                              token_url=self._token_url, 
+                                                              proxy_url=self._proxy_url, 
+                                                              proxy_port=self._proxy_port)         
+        else:
+           
+            self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
+                                                              password=self._password, 
+                                                              org_url=self._org_url, 
+                                                              proxy_url=self._proxy_url, 
+                                                              proxy_port=self._proxy_port)   
     #----------------------------------------------------------------------  
     @property
     def message(self):
