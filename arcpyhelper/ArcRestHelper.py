@@ -12,6 +12,12 @@ import os
 import Common
 import sys
 import time
+import gc
+import arcpy
+
+class ArcRestHelperError(Exception):
+    """ raised when error occurs in utility module functions """
+    pass
 
 class orgTools():
     _username = None
@@ -246,7 +252,7 @@ class publishingtools():
         self._token_url = token_url
         if self._org_url is None or self._org_url =='':
             self._org_url = 'http://www.arcgis.com'
-        if self._org_url is None or '.arcgis.com' in  self._org_url:    
+        if self._org_url is None or '.arcgis.com' in self._org_url:    
             self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
                                                               password=self._password, 
                                                               org_url=self._org_url, 
@@ -893,71 +899,80 @@ class publishingtools():
         else:
             return resultSD
     #----------------------------------------------------------------------        
+    def _publishAppLogic(self,appDet,map_info=None):        
+        
+        itemInfo = {}
+        
+        if appDet.has_key('ReplaceInfo'):
+            replaceInfo = appDet['ReplaceInfo']
+        else:
+            replaceInfo = None
+    
+   
+        if replaceInfo != None:
+    
+            for replaceItem in replaceInfo:
+                    
+                for mapDet in map_info: 
+                    if mapDet.has_key('ReplaceTag'):
+                        if mapDet is not None and replaceItem['ReplaceString'] == mapDet['ReplaceTag'] and replaceItem['ReplaceType'] == 'Map':
+                            
+                            replaceItem['ItemID'] = mapDet['MapInfo']['Results']['id']
+                            replaceItem['ItemFolder'] = mapDet['MapInfo']['folderId']
+                        elif mapDet is not None and replaceItem['ReplaceType'] == 'Layer':
+                            repInfo = replaceItem['ReplaceString'].split("|")
+                            if len(repInfo) == 2:
+                                if repInfo[0] == mapDet['ReplaceTag']:
+                                    for lay in  mapDet['MapInfo']['Layers']:
+                                        if lay["Name"] == repInfo[1]:
+                                            replaceItem['ReplaceString'] = lay["ID"] 
+                                
+                        elif replaceItem.has_key('ItemID'):
+                            if replaceItem.has_key('ItemFolder') == False:
+            
+                                itemId = replaceItem['ItemID']
+                                itemInfo =   item = admin.content.item(itemId=itemId)
+                                if 'owner' in itemInfo:
+                                    if itemInfo['owner'] == username and 'ownerFolder' in itemInfo:
+                                        replaceItem['ItemFolder'] = itemInfo['ownerFolder']
+                                    else:
+                                        replaceItem['ItemFolder'] = None
+        
+
+        if appDet.has_key('ReplaceTag'):
+                           
+            itemInfo = {"ReplaceTag":appDet['ReplaceTag'] }
+        else:
+            itemInfo = {"ReplaceTag":"{App}" }
+            
+        if appDet['Type'] == 'Web Mapping Application':
+            itemInfo['AppInfo']  = self._publishApp(config=appDet,
+                                                           replaceInfo=replaceInfo)                
+        elif appDet['Type'] == 'Operation View':
+            itemInfo['AppInfo']  = self._publishDashboard(config=appDet,
+                                                           replaceInfo=replaceInfo)                
+        else:
+            itemInfo['AppInfo']  = self._publishApp(config=appDet,
+                                           replaceInfo=replaceInfo)            
+       
+        if not itemInfo['AppInfo']  is None:
+            if not 'error' in itemInfo['AppInfo']['Results'] :
+                print "            %s app created" % itemInfo['AppInfo']['Name']
+            else:
+                print "            " + str(itemInfo['AppInfo']['Results'])
+        else:
+            print "            " + "App was not created" 
+        return itemInfo
+    
+    #----------------------------------------------------------------------        
     def publishApp(self,app_info,map_info=None):
       
         app_results = []
-        for appDet in app_info:
-            itemInfo = {}
-            
-            if appDet.has_key('ReplaceInfo'):
-                replaceInfo = appDet['ReplaceInfo']
-            else:
-                replaceInfo = None
-        
-       
-            if replaceInfo != None:
-        
-                for replaceItem in replaceInfo:
-                        
-                    for mapDet in map_info: 
-                        if mapDet.has_key('ReplaceTag'):
-                            if mapDet is not None and replaceItem['ReplaceString'] == mapDet['ReplaceTag'] and replaceItem['ReplaceType'] == 'Map':
-                                
-                                replaceItem['ItemID'] = mapDet['MapInfo']['Results']['id']
-                                replaceItem['ItemFolder'] = mapDet['MapInfo']['folderId']
-                            elif mapDet is not None and replaceItem['ReplaceType'] == 'Layer':
-                                repInfo = replaceItem['ReplaceString'].split("|")
-                                if len(repInfo) == 2:
-                                    if repInfo[0] == mapDet['ReplaceTag']:
-                                        for lay in  mapDet['MapInfo']['Layers']:
-                                            if lay["Name"] == repInfo[1]:
-                                                replaceItem['ReplaceString'] = lay["ID"] 
-                                    
-                            elif replaceItem.has_key('ItemID'):
-                                if replaceItem.has_key('ItemFolder') == False:
-                
-                                    itemId = replaceItem['ItemID']
-                                    itemInfo =   item = admin.content.item(itemId=itemId)
-                                    if 'owner' in itemInfo:
-                                        if itemInfo['owner'] == username and 'ownerFolder' in itemInfo:
-                                            replaceItem['ItemFolder'] = itemInfo['ownerFolder']
-                                        else:
-                                            replaceItem['ItemFolder'] = None
-            
-
-            if appDet.has_key('ReplaceTag'):
-                               
-                itemInfo = {"ReplaceTag":appDet['ReplaceTag'] }
-            else:
-                itemInfo = {"ReplaceTag":"{App}" }
-                
-            if appDet['Type'] == 'Web Mapping Application':
-                itemInfo['AppInfo']  = self._publishApp(config=appDet,
-                                                               replaceInfo=replaceInfo)                
-            elif appDet['Type'] == 'Operation View':
-                itemInfo['AppInfo']  = self._publishDashboard(config=appDet,
-                                                               replaceInfo=replaceInfo)                
-            else:
-                itemInfo['AppInfo']  = self._publishApp(config=appDet,
-                                               replaceInfo=replaceInfo)            
-            app_results.append(itemInfo)
-            if not itemInfo['AppInfo']  is None:
-                if not 'error' in itemInfo['AppInfo']['Results'] :
-                    print "            %s app created" % itemInfo['AppInfo']['Name']
-                else:
-                    print "            " + str(itemInfo['AppInfo']['Results'])
-            else:
-                print "            " + "App was not created"
+        if isinstance(app_info, list):
+            for appDet in app_info:
+                app_results.append(self._publishAppLogic(appDet=appDet,map_info=map_info))
+        else:
+            app_results.append(self._publishAppLogic(appDet=app_info,map_info=map_info))
         return app_results
     
     #----------------------------------------------------------------------   
@@ -1256,8 +1271,94 @@ class publishingtools():
             resultApp['folderId'] = folderId
             resultApp['Name'] = name
         return resultApp
+    #----------------------------------------------------------------------   
+    def updateFeatureService(self,efs_config):
+      
+        fsRes = None
+        fst = None
+        fURL = None
+        resItm= None
+        try:
+           
+            fsRes = []
+            fst = featureservicetools(securityHandler=self._securityHandler)
+            
     
-  
+            if isinstance(efs_config, list):
+                for ext_service in efs_config:   
+                    resItm={"DeleteDetails": None,"AddDetails":None}
+                    fURL = ext_service['URL']
+                                               
+                    if 'DeleteInfo' in ext_service:
+                        if str(ext_service['DeleteInfo']['Delete']).upper() == "TRUE":
+                            resItm['DeleteDetails'] = fst.DeleteFeaturesFromFeatureLayer(url=fURL, sql=ext_service['DeleteInfo']['DeleteSQL'])
+                            if not 'error' in resItm['DeleteDetails'] :
+                                print "            Delete Successful: %s" % fURL
+                            else:
+                                print "            " + str(resItm['DeleteDetails'])                                    
+                                
+                    resItm['AddDetails'] = fst.AddFeaturesToFeatureLayer(url=fURL, pathToFeatureClass = ext_service['FeatureClass'])
+                   
+                    fsRes.append(resItm)   
+                  
+                    if not 'error' in resItm['AddDetails']:
+                        print "            Add Successful: %s " % fURL
+                    else:
+                        print "            " + str(resItm['AddDetails'])                    
+                    
+            else:
+                resItm={"DeleteDetails": None,"AddDetails":None}
+                fURL = efs_config['URL']
+                                           
+                if 'DeleteInfo' in efs_config:
+                    if str(efs_config['DeleteInfo']['Delete']).upper() == "TRUE":
+                        resItm['DeleteDetails'] = fst.DeleteFeaturesFromFeatureLayer(url=fURL, sql=efs_config['DeleteInfo']['DeleteSQL'])
+                        if not 'error' in resItm['DeleteDetails'] :
+                            print "            Delete Successful: %s" % fURL
+                        else:
+                            print "            " + str(resItm['DeleteDetails'])        
+                            
+                resItm['AddDetails'] = fst.AddFeaturesToFeatureLayer(url=fURL, pathToFeatureClass = efs_config['FeatureClass'])
+               
+                fsRes.append(resItm)    
+            
+                if not 'error' in resItm['AddDetails']:
+                    print "            Add Successful: %s " % fURL
+                else:
+                    print "            " + str(resItm['AddDetails'])                    
+                          
+            return fsRes
+        except arcpy.ExecuteError:
+            line, filename, synerror = Common.trace()
+            raise ArcRestHelperError({
+                        "function": "updateFeatureService",
+                        "line": line,
+                        "filename":  filename,
+                        "synerror": synerror,
+                        "arcpyError": arcpy.GetMessages(2),
+                                        }
+                                        )
+        except:
+            line, filename, synerror = Common.trace()
+            raise ArcRestHelperError({
+                        "function": "create_calcload_report",
+                        "line": line,
+                        "filename":  filename,
+                        "synerror": synerror,
+                                        }
+                                        )
+        finally:     
+           
+           
+            fst = None
+            fURL = None
+            resItm= None    
+           
+            del fst
+            del fURL
+            del resItm
+            
+            gc.collect
 ########################################################################
 class featureservicetools():
     _username = None
@@ -1271,36 +1372,46 @@ class featureservicetools():
     _message = ""        
     #----------------------------------------------------------------------           
     def __init__(self, 
-                 username, 
-                 password, 
+                 username=None, 
+                 password=None, 
                  org_url=None,
                  token_url = None,
                  proxy_url=None, 
-                 proxy_port=None):
+                 proxy_port=None,
+                 securityHandler=None):
         
         """Constructor"""
-        self._org_url = org_url
-        self._username = username
-        self._password = password
-        self._proxy_url = proxy_url
-        self._proxy_port = proxy_port 
-        self._token_url = token_url
-        if self._org_url is None or self._org_url =='':
-            self._org_url = 'http://www.arcgis.com'
-        if self._org_url is None or '.arcgis.com' in  self._org_url:    
-            self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
-                                                              password=self._password, 
-                                                              org_url=self._org_url, 
-                                                              token_url=self._token_url, 
-                                                              proxy_url=self._proxy_url, 
-                                                              proxy_port=self._proxy_port)         
-        else:
-           
-            self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
-                                                              password=self._password, 
-                                                              org_url=self._org_url, 
-                                                              proxy_url=self._proxy_url, 
-                                                              proxy_port=self._proxy_port)   
+        if securityHandler is None:
+            self._org_url = org_url
+            self._username = username
+            self._password = password
+            self._proxy_url = proxy_url
+            self._proxy_port = proxy_port 
+            self._token_url = token_url
+            if self._org_url is None or self._org_url =='':
+                self._org_url = 'http://www.arcgis.com'
+            if self._org_url is None or '.arcgis.com' in  self._org_url:    
+                self._securityHandler = arcrest.AGOLTokenSecurityHandler(username=self._username, 
+                                                                  password=self._password, 
+                                                                  org_url=self._org_url, 
+                                                                  token_url=self._token_url, 
+                                                                  proxy_url=self._proxy_url, 
+                                                                  proxy_port=self._proxy_port)         
+            else:
+               
+                self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
+                                                                  password=self._password, 
+                                                                  org_url=self._org_url, 
+                                                                  proxy_url=self._proxy_url, 
+                                                                  proxy_port=self._proxy_port)  
+        else:   
+            self._org_url = securityHandler._org_url
+            self._username = securityHandler._username
+            self._password = securityHandler._password
+            self._proxy_url = securityHandler._proxy_url
+            self._proxy_port = securityHandler._proxy_port 
+            self._token_url = securityHandler._token_url            
+            self._securityHandler = securityHandler
     #----------------------------------------------------------------------  
     @property
     def message(self):
