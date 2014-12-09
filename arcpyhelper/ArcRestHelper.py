@@ -1341,7 +1341,7 @@ class publishingtools():
         except:
             line, filename, synerror = Common.trace()
             raise ArcRestHelperError({
-                        "function": "create_calcload_report",
+                        "function": "updateFeatureService",
                         "line": line,
                         "filename":  filename,
                         "synerror": synerror,
@@ -1484,6 +1484,6 @@ class featureservicetools():
             
         fl = FeatureLayer(
                url=url,
-               securityHandler=self._securityHandler) 
+               securityHandler=self._securityHandler,) 
         return fl.deleteFeatures(where=sql)
             
