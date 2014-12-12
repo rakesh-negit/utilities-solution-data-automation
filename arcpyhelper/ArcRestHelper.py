@@ -63,25 +63,25 @@ class orgTools():
                                                               proxy_port=self._proxy_port)   
     #----------------------------------------------------------------------  
     def dispose(self):
-        _username = None
-        _password = None
-        _org_url = None
-        _proxy_url = None
-        _proxy_port = None
-        _token_url = None
-        _securityHandler = None
-        _valid = None
-        _message = None          
+        self._username = None
+        self._password = None
+        self._org_url = None
+        self._proxy_url = None
+        self._proxy_port = None
+        self._token_url = None
+        self._securityHandler = None
+        self._valid = None
+        self._message = None          
     
-        del _username 
-        del _password 
-        del _org_url 
-        del _proxy_url 
-        del _proxy_port 
-        del _token_url
-        del _securityHandler
-        del _valid
-        del _message   
+        del self._username 
+        del self._password 
+        del self._org_url 
+        del self._proxy_url 
+        del self._proxy_port 
+        del self._token_url
+        del self._securityHandler
+        del self._valid
+        del self._message         
     #----------------------------------------------------------------------  
     @property
     def message(self):
@@ -275,25 +275,25 @@ class resetTools():
             
     #----------------------------------------------------------------------  
     def dispose(self):
-        _username = None
-        _password = None
-        _org_url = None
-        _proxy_url = None
-        _proxy_port = None
-        _token_url = None
-        _securityHandler = None
-        _valid = None
-        _message = None          
+        self._username = None
+        self._password = None
+        self._org_url = None
+        self._proxy_url = None
+        self._proxy_port = None
+        self._token_url = None
+        self._securityHandler = None
+        self._valid = None
+        self._message = None          
     
-        del _username 
-        del _password 
-        del _org_url 
-        del _proxy_url 
-        del _proxy_port 
-        del _token_url
-        del _securityHandler
-        del _valid
-        del _message
+        del self._username 
+        del self._password 
+        del self._org_url 
+        del self._proxy_url 
+        del self._proxy_port 
+        del self._token_url
+        del self._securityHandler
+        del self._valid
+        del self._message         
     #----------------------------------------------------------------------  
     def removeUserData(self,users=None):
         admin = None
@@ -485,25 +485,25 @@ class publishingtools():
 
     #----------------------------------------------------------------------  
     def dispose(self):
-        _username = None
-        _password = None
-        _org_url = None
-        _proxy_url = None
-        _proxy_port = None
-        _token_url = None
-        _securityHandler = None
-        _valid = None
-        _message = None          
+        self._username = None
+        self._password = None
+        self._org_url = None
+        self._proxy_url = None
+        self._proxy_port = None
+        self._token_url = None
+        self._securityHandler = None
+        self._valid = None
+        self._message = None          
     
-        del _username 
-        del _password 
-        del _org_url 
-        del _proxy_url 
-        del _proxy_port 
-        del _token_url
-        del _securityHandler
-        del _valid
-        del _message         
+        del self._username 
+        del self._password 
+        del self._org_url 
+        del self._proxy_url 
+        del self._proxy_port 
+        del self._token_url
+        del self._securityHandler
+        del self._valid
+        del self._message         
     #----------------------------------------------------------------------  
     @property
     def message(self):
@@ -2419,25 +2419,26 @@ class featureservicetools():
             self._securityHandler = securityHandler
     #----------------------------------------------------------------------  
     def dispose(self):
-        _username = None
-        _password = None
-        _org_url = None
-        _proxy_url = None
-        _proxy_port = None
-        _token_url = None
-        _securityHandler = None
-        _valid = None
-        _message = None          
+        
+        self._username = None
+        self._password = None
+        self._org_url = None
+        self._proxy_url = None
+        self._proxy_port = None
+        self._token_url = None
+        self._securityHandler = None
+        self._valid = None
+        self._message = None          
     
-        del _username 
-        del _password 
-        del _org_url 
-        del _proxy_url 
-        del _proxy_port 
-        del _token_url
-        del _securityHandler
-        del _valid
-        del _message      
+        del self._username 
+        del self._password 
+        del self._org_url 
+        del self._proxy_url 
+        del self._proxy_port 
+        del self._token_url
+        del self._securityHandler
+        del self._valid
+        del self._message             
     #----------------------------------------------------------------------  
     @property
     def message(self):
