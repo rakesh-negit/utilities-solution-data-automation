@@ -1086,7 +1086,7 @@ class publishingtools():
             admin = None
             
             map_info = None
-            operationalLayers = None
+            
             tableLayers = None
             item = None
             response = None
@@ -1098,7 +1098,7 @@ class publishingtools():
             
             del admin 
             del map_info
-            del operationalLayers
+          
             del tableLayers
             del item
             del response
@@ -2236,7 +2236,7 @@ class publishingtools():
             del itemJson       
             del layerIDSwitch 
             del admin 
-            del adminusercontent 
+           
             del json_data 
             del itemData 
             del replaceItem 
