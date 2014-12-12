@@ -1,7 +1,6 @@
 import datetime
-import json
 import os
-import Common
+import arcpyhelper.Common as Common
 import arcpy
 from arcpy import env
 from copy import deepcopy
@@ -89,7 +88,7 @@ def create_report_layers_using_config(config):
         del report_msg 
         del reporting_areas_ID_field 
         del reporting_areas      
-        gc.collect
+        gc.collect()
 #----------------------------------------------------------------------
 def create_calcload_report(report_params):
 
@@ -223,7 +222,7 @@ def create_calcload_report(report_params):
         del _tempTableFull 
         del _procData
         del  inputCnt           
-        gc.collect
+        gc.collect()
 #----------------------------------------------------------------------
 def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params):
     classified_layer_field_name = None
@@ -359,7 +358,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         del classified_layer 
         del pivot_layer 
         del report_copy   
-        gc.collect
+        gc.collect()
         
 #----------------------------------------------------------------------
 def create_average_report(reporting_areas,reporting_areas_ID_field,report_params):
@@ -480,7 +479,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         del result 
         del report_copy 
               
-        gc.collect
+        gc.collect()
 #----------------------------------------------------------------------
 def calculate_load_results(feature_data, 
                            feature_data_id_field,                         
@@ -616,44 +615,44 @@ def calculate_load_results(feature_data,
                                     }
                                     )
     finally:            
-            _tempWorkspace = None     
-            _feature_data_layer = None
-            _join_table_copy = None
-            _joinedDataFull = None   
-            _pointsJoinedData = None
-            _pointsJoinedDataFull = None  
-            joinTableDesc = None
-            joinName = None               
-            featureDataDesc = None
-            featureDataName = None    
-            fields = None
-            tFields = None 
-            layerFlds  = None
-            new_row = None
-            dt = None
-            onlTm = None
-            timeStr = None
-            strOnlineTime = None 
+        _tempWorkspace = None     
+        _feature_data_layer = None
+        _join_table_copy = None
+        _joinedDataFull = None   
+        _pointsJoinedData = None
+        _pointsJoinedDataFull = None  
+        joinTableDesc = None
+        joinName = None               
+        featureDataDesc = None
+        featureDataName = None    
+        fields = None
+        tFields = None 
+        layerFlds  = None
+        new_row = None
+        dt = None
+        onlTm = None
+        timeStr = None
+        strOnlineTime = None 
 
-            del _tempWorkspace    
-            del _feature_data_layer
-            del _join_table_copy
-            del _joinedDataFull  
-            del  _pointsJoinedData
-            del _pointsJoinedDataFull  
-            del joinTableDesc
-            del joinName               
-            del featureDataDesc
-            del featureDataName    
-            del fields
-            del tFields 
-            del layerFlds 
-            del new_row
-            del dt
-            del onlTm
-            del timeStr
-            del strOnlineTime
-            gc.collect
+        del _tempWorkspace    
+        del _feature_data_layer
+        del _join_table_copy
+        del _joinedDataFull  
+        del  _pointsJoinedData
+        del _pointsJoinedDataFull  
+        del joinTableDesc
+        del joinName               
+        del featureDataDesc
+        del featureDataName    
+        del fields
+        del tFields 
+        del layerFlds 
+        del new_row
+        del dt
+        del onlTm
+        del timeStr
+        del strOnlineTime
+        gc.collect()
 #----------------------------------------------------------------------
 def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, reporting_layer_field_map,code_exp):
     _tempWorkspace = None
@@ -707,7 +706,7 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         del _tempWorkspace
         del _intersect
         
-        gc.collect
+        gc.collect()
 
 #----------------------------------------------------------------------
 def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name):
@@ -817,7 +816,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         del newRow
         del newRows
         
-        gc.collect
+        gc.collect()
 #----------------------------------------------------------------------
 def classified_pivot(classified_layer, classified_layer_field_name, reporting_areas_ID_field, count_field,summary_fields=''):
     
@@ -865,7 +864,7 @@ def classified_pivot(classified_layer, classified_layer_field_name, reporting_ar
         del _tempWorkspace        
         del _freq
         
-        gc.collect
+        gc.collect()
                
 #----------------------------------------------------------------------
 def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_schema ,report_result, join_layer):
@@ -920,7 +919,7 @@ def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_sch
         del _tempWorkspace
         del _reportCopy
         
-        gc.collect
+        gc.collect()
 #----------------------------------------------------------------------
 def calculate_average_report_results(report_result, reporting_areas_ID_field,report_copy, field_map  ,report_date_field,report_ID_field,average_field  ):
     fields = None
@@ -987,7 +986,7 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
         del search_fields
         del newrow
         
-        gc.collect
+        gc.collect()
         
 #----------------------------------------------------------------------
 def calculate_report_results(report_result, reporting_areas_ID_field,report_copy, reclass_map  ,report_date_field,report_ID_field ,exp ):
@@ -1229,7 +1228,7 @@ def fieldsToFieldArray(featureclass):
         
         del fieldList
         
-        gc.collect
+        gc.collect()
 #----------------------------------------------------------------------    
 def FieldExist(featureclass, fieldNames):
     """FieldExist(dataset, [fieldNames])
@@ -1273,7 +1272,7 @@ def FieldExist(featureclass, fieldNames):
         del fieldList 
         del fndCnt
         
-        gc.collect
+        gc.collect()
 #----------------------------------------------------------------------  
 def calc_field(inputDataset,field_map,code_exp,result_field):
     
@@ -1334,7 +1333,7 @@ def calc_field(inputDataset,field_map,code_exp,result_field):
         del replaceValList
         del newList
         
-        gc.collect
+        gc.collect()
 #----------------------------------------------------------------------  
 def calculate_age_field(inputDataset,field,result_field):
     newList = None   
@@ -1374,7 +1373,7 @@ def calculate_age_field(inputDataset,field,result_field):
         
         del newList
         
-        gc.collect
+        gc.collect()
 
 #----------------------------------------------------------------------  
 def calculate_inline_stats(inputDataset,fields,result_field,stats_method):
@@ -1450,7 +1449,7 @@ def calculate_inline_stats(inputDataset,fields,result_field,stats_method):
         del minVal   
         del maxVal  
 
-        gc.collect
+        gc.collect()
         
 #----------------------------------------------------------------------  
 def deleteFC(in_datasets):

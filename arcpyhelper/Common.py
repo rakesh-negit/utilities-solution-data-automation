@@ -8,34 +8,104 @@ import datetime
 import time
 import traceback
 from urlparse import urlparse
+import gc
 
-
+class CommonError(Exception):
+    """ raised when error occurs in utility module functions """
+    pass
+#----------------------------------------------------------------------  
 def noneToValue(value,newValue):
     if value is None:
         return newValue
     else:
         return value
-
+#----------------------------------------------------------------------  
 def getLayerIndex(url):
-    urlInfo = urlparse(url)
-    urlSplit = str(urlInfo.path).split('/')
-    inx = urlSplit[len(urlSplit)-1]
-
-    if is_number(inx):
-        return int(inx)
+    urlInfo = None
+    urlSplit = None
+    inx = None   
+    try:
+        urlInfo = urlparse(url)
+        urlSplit = str(urlInfo.path).split('/')
+        inx = urlSplit[len(urlSplit)-1]
     
+        if is_number(inx):
+            return int(inx)
+       
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "getLayerIndex",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        urlInfo = None
+        urlSplit = None
+       
+        del urlInfo
+        del urlSplit
+       
+        gc.collect() 
+#----------------------------------------------------------------------  
 def getLayerName(url):
-    urlInfo = urlparse(url)
-    urlSplit = str(urlInfo.path).split('/')
-    name = urlSplit[len(urlSplit)-3]
-    return name   
-
+    urlInfo = None
+    urlSplit = None   
+    try:
+        urlInfo = urlparse(url)
+        urlSplit = str(urlInfo.path).split('/')
+        name = urlSplit[len(urlSplit)-3]
+        return name   
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "getLayerName",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        urlInfo = None
+        urlSplit = None
+       
+        del urlInfo
+        del urlSplit
+       
+        gc.collect() 
+#----------------------------------------------------------------------  
 def random_string_generator(size=6, chars=string.ascii_uppercase):
-    return ''.join(random.choice(chars) for _ in range(size))
-
+    try:
+        return ''.join(random.choice(chars) for _ in range(size))
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "random_string_generator",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        pass
+#----------------------------------------------------------------------  
 def random_int_generator(maxrange):
-    return random.randint(0,maxrange)
-
+    try:
+        return random.randint(0,maxrange)
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "random_int_generator",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        pass
+#----------------------------------------------------------------------  
 def local_time_to_online(dt=None):
     """
        converts datetime object to a UTC timestamp for AGOL
@@ -44,14 +114,33 @@ def local_time_to_online(dt=None):
        Output:
           Long value
     """
-    if dt is None:
-        dt = datetime.datetime.now()
-
-    is_dst = time.daylight > 0 and time.localtime().tm_isdst > 0
-    utc_offset =  (time.altzone if is_dst else time.timezone)
-
-    return (time.mktime(dt.timetuple()) * 1000) + (utc_offset * 1000)
-
+    is_dst = None
+    utc_offset = None   
+    try:
+        if dt is None:
+            dt = datetime.datetime.now()
+    
+        is_dst = time.daylight > 0 and time.localtime().tm_isdst > 0
+        utc_offset =  (time.altzone if is_dst else time.timezone)
+    
+        return (time.mktime(dt.timetuple()) * 1000) + (utc_offset * 1000)
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "local_time_to_online",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        is_dst = None
+        utc_offset = None 
+       
+        del is_dst
+        del utc_offset       
+        
+#----------------------------------------------------------------------  
 def online_time_to_string(value,timeFormat):
     """
        Converts a timestamp to date/time string
@@ -61,7 +150,19 @@ def online_time_to_string(value,timeFormat):
        Output:
           string
     """
-    return datetime.datetime.fromtimestamp(value /1000).strftime(timeFormat)
+    try:
+        return datetime.datetime.fromtimestamp(value /1000).strftime(timeFormat)
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "online_time_to_string",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        pass
 #----------------------------------------------------------------------
 def is_number(s):
     try:
@@ -80,18 +181,53 @@ def is_number(s):
     return False
 #----------------------------------------------------------------------
 def init_config_json(config_file):
-    if os.path.exists(config_file):
+    json_data = None
+    try:
+        if os.path.exists(config_file):
         #Load the config file
         
-        with open(config_file) as json_file:
-            json_data = json.load(json_file)
-            return unicode_convert( json_data)
-    else:
-        return None
+            with open(config_file) as json_file:
+                json_data = json.load(json_file)
+                return unicode_convert(json_data)
+        else:
+            return None
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "init_config_json",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        json_data = None
+        
+        del json_data
+        
+        gc.collect()
+    
 #----------------------------------------------------------------------
 def write_config_json(config_file, data):
-    with open(config_file, 'w') as outfile:
-        json.dump(data, outfile)  
+    outfile = None    
+    try:
+        with open(config_file, 'w') as outfile:
+            json.dump(data, outfile)  
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "init_config_json",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        outfile = None
+        
+        del outfile
+        
+        gc.collect()
       
 #----------------------------------------------------------------------
 def unicode_convert(obj):
@@ -109,25 +245,48 @@ def unicode_convert(obj):
     except:
         return obj
 def find_replace_string(obj,find,replace):
-    
-    obj = str(obj)
-    return string.replace(obj,find, replace)
-
+    try:
+        obj = str(obj)
+        return string.replace(obj,find, replace)
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "find_replace_string",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        pass
 def find_replace(obj,find,replace):
+    
     """ searchs an object and does a find and replace """
-    if isinstance(obj, dict):
-        return {find_replace(key,find,replace): find_replace(value,find,replace) for key, value in obj.iteritems()}
-    elif isinstance(obj, list):
-        return [find_replace(element,find,replace) for element in obj]
-    elif obj == find:
-        return unicode_convert(replace)
-    else:
-        try:
-            return unicode_convert(find_replace_string(obj, find, replace))
-            #obj = unicode_convert(json.loads(obj))
-            #return find_replace(obj,find,replace)
-        except:    
-            return unicode_convert(obj)
+    try:
+        if isinstance(obj, dict):
+            return {find_replace(key,find,replace): find_replace(value,find,replace) for key, value in obj.iteritems()}
+        elif isinstance(obj, list):
+            return [find_replace(element,find,replace) for element in obj]
+        elif obj == find:
+            return unicode_convert(replace)
+        else:
+            try:
+                return unicode_convert(find_replace_string(obj, find, replace))
+                #obj = unicode_convert(json.loads(obj))
+                #return find_replace(obj,find,replace)
+            except:    
+                return unicode_convert(obj)
+    except:
+        line, filename, synerror = trace()
+        raise CommonError({
+                    "function": "find_replace",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:                
+        pass   
 #----------------------------------------------------------------------
 def init_log(log_file,):
 
@@ -139,7 +298,7 @@ def init_log(log_file,):
         #Change the output to both the windows and log file
         #original = sys.stdout
         sys.stdout = Tee(sys.stdout, log)
-    except Exception:
+    except:
         pass
     return log
 
@@ -152,21 +311,6 @@ class Tee(object):
     def write(self, obj):
         for f in self.files:
             f.write(obj)
-#----------------------------------------------------------------------
-def init_localization():
-    '''prepare l10n'''
-    locale.setlocale(locale.LC_ALL, '') # use user's preferred locale
-    # take first two characters of country code
-    filename = "res/messages_%s.mo" % locale.getlocale()[0][0:2]
-
-    try:
-        #print( "Opening message file %s for locale %s") % (filename, loc[0])
-        trans = gettext.GNUTranslations(open( filename, "rb" ) )
-    except IOError:
-        #print( "Locale not found. Using default messages" )
-        trans = gettext.NullTranslations()
-
-    trans.install()
 
 #----------------------------------------------------------------------
 def trace():
