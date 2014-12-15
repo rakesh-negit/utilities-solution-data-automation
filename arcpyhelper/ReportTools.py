@@ -87,7 +87,8 @@ def create_report_layers_using_config(config):
         del reports
         del report_msg 
         del reporting_areas_ID_field 
-        del reporting_areas      
+        del reporting_areas   
+        
         gc.collect()
 #----------------------------------------------------------------------
 def create_calcload_report(report_params):
@@ -221,7 +222,8 @@ def create_calcload_report(report_params):
         del _tempTableName 
         del _tempTableFull 
         del _procData
-        del  inputCnt           
+        del  inputCnt  
+        
         gc.collect()
 #----------------------------------------------------------------------
 def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params):
@@ -594,6 +596,9 @@ def calculate_load_results(feature_data,
                     elif report_date_field != '':    
                         new_row.append(strOnlineTime)  
                     icursor.insertRow(new_row)  
+                del row
+                del scursor
+            del icursor
                     
     except arcpy.ExecuteError:
         line, filename, synerror = Common.trace()
@@ -770,15 +775,13 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
     
                     row[len(flds) - 1] = 'NORECLASS'
                 urows.updateRow(row)
-    
+            del row
             del urows
             if len(newRows) > 0 :
                 with arcpy.da.InsertCursor(_intersect, flds) as irows:
     
                     for newRow in newRows:
                         irows.insertRow(newRow)
-    
-    
                 del irows
         return _intersect
     
@@ -1045,6 +1048,8 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
         del appendString
         del fields
         del strOnlineTime       
+        gc.collect()
+        
 #----------------------------------------------------------------------
 def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,report_result,reclass_map  ,report_date_field,report_ID_field):
     
@@ -1125,7 +1130,105 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
         del _final_report
         del appendString
         del strOnlineTime
-        del fields      
+        del fields  
+        
+        gc.collect()
+#----------------------------------------------------------------------
+def shapeBasedSpatialJoin(TargetLayer, JoinLayer,JoinResult):
+    _tempWorkspace = None     
+    _targetCopyName = None
+    _targetCopy = None
+    _areaFieldName = None
+    _idenResultLayer = None
+   
+    layDetails = None  
+    _lenAreaFld = None
+    
+    try:
+        if not arcpy.Exists( TargetLayer):
+            raise ValueError(TargetLayer + " does not exist")
+        if not arcpy.Exists( JoinLayer):
+            raise ValueError(JoinLayer + " does not exist")
+        # Local variables:
+        _tempWorkspace = env.scratchGDB
+    
+        _targetCopyName = Common.random_string_generator()
+        _targetCopy = os.path.join(_tempWorkspace ,_targetCopyName)
+        #JoinResult = os.path.join(_tempWorkspace ,random_string_generator())
+        _areaFieldName = Common.random_string_generator(size=12)
+        _idenResultLayer ="polyIdenLayer"
+    
+        _lenAreaFld = "SHAPE_Area"
+    
+        layDetails = arcpy.Describe(TargetLayer)
+        if layDetails.shapeType == "Polygon":
+            _lenAreaFld = "Shape_Area"
+        elif layDetails.shapeType == "Polyline":
+            _lenAreaFld = "Shape_Length"
+        else:
+            return ""
+        arcpy.FeatureClassToFeatureClass_conversion(TargetLayer,_tempWorkspace,_targetCopyName,"#","","#")
+        # Process: Copy
+        # Process: Add Field
+        arcpy.AddField_management(_targetCopy, _areaFieldName, "DOUBLE", "", "", "", "", "NULLABLE", "NON_REQUIRED", "")
+    
+        # Process: Calculate Field
+        arcpy.CalculateField_management(_targetCopy, _areaFieldName, "!" + _lenAreaFld +"!", "PYTHON_9.3", "")
+    
+        # Process: Identity
+        arcpy.Identity_analysis(_targetCopy, JoinLayer, JoinResult, "ALL", "", "NO_RELATIONSHIPS")
+    
+        # Process: Make Feature Layer
+        arcpy.MakeFeatureLayer_management(JoinResult, _idenResultLayer, "", "", "")
+    
+        # Process: Select Layer By Attribute
+        arcpy.SelectLayerByAttribute_management(_idenResultLayer, "NEW_SELECTION", _lenAreaFld + " < .5 *  " + _areaFieldName)
+    
+        # Process: Delete Features
+        arcpy.DeleteFeatures_management(_idenResultLayer)
+    
+        deleteFC([_targetCopy])
+
+        return JoinResult 
+    except arcpy.ExecuteError:
+        line, filename, synerror = Common.trace()
+        raise ReportToolsError({
+                    "function": "shapeBasedSpatialJoin",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                    "arcpyError": arcpy.GetMessages(2),
+                                    }
+                                    )
+    except:
+        line, filename, synerror = Common.trace()
+        raise ReportToolsError({
+                    "function": "shapeBasedSpatialJoin",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally: 
+        _tempWorkspace = None     
+        _targetCopyName = None
+        _targetCopy = None
+        _areaFieldName = None
+        _idenResultLayer = None
+      
+        layDetails = None  
+        _lenAreaFld = None     
+        
+        del _tempWorkspace 
+        del _targetCopyName 
+        del _targetCopy
+        del _areaFieldName 
+        del _idenResultLayer 
+       
+        del layDetails  
+        del _lenAreaFld 
+        
+        gc.collect()    
 #----------------------------------------------------------------------    
 def JoinAndCalc(inputDataset, inputJoinField, joinTable, joinTableJoinField,copyFields, joinType="KEEP_ALL"):
     
@@ -1303,6 +1406,7 @@ def calc_field(inputDataset,field_map,code_exp,result_field):
 
                 except Exception:
                     cursor.deleteRow()
+            del row
             del cursor
     except arcpy.ExecuteError:
         line, filename, synerror = Common.trace()
@@ -1349,6 +1453,7 @@ def calculate_age_field(inputDataset,field,result_field):
                 else:
                     row[1] = datetime.datetime.now().year - row[0].year
                     cursor.updateRow(row)
+            del row
         del cursor
     except arcpy.ExecuteError:
         line, filename, synerror = Common.trace()
@@ -1424,6 +1529,7 @@ def calculate_inline_stats(inputDataset,fields,result_field,stats_method):
                     maxVal = max(i for i in row if i is not None)
                     row.append(maxVal)
                 cursor.updateRow(row)
+            del row
             del cursor
 
     except:
@@ -1462,3 +1568,4 @@ def deleteFC(in_datasets):
        
         except Exception:
             print "Unable to delete %s" % in_data
+

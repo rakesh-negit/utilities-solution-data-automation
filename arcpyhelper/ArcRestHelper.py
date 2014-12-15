@@ -539,22 +539,24 @@ class publishingtools():
             
                     for replaceItem in replaceInfo:
                         if replaceItem['ReplaceType'] == 'Layer':
-                            
-                            for fs in fsInfo: 
-                                if fs is not None and replaceItem['ReplaceString'] == fs['ReplaceTag']:
-                                    replaceItem['ReplaceString'] = fs['FSInfo']['serviceurl']
-                                    replaceItem['ItemID'] = fs['FSInfo']['serviceItemId']
-                                    replaceItem['ItemFolder'] = fs['FSInfo']['folderId']
-                                elif replaceItem.has_key('ItemID'):
-                                    if replaceItem.has_key('ItemFolder') == False:
-                    
-                                        itemID = replaceItem['ItemID']
-                                        itemInfo = admin.content.item(itemId=itemID)
-                                        if 'owner' in itemInfo:
-                                            if itemInfo['owner'] == self._securityHandler.username and 'ownerFolder' in itemInfo:
-                                                replaceItem['ItemFolder'] = itemInfo['ownerFolder']
-                                            else:
-                                                replaceItem['ItemFolder'] = None
+                           
+                            if fsInfo is not None:
+                                
+                                for fs in fsInfo: 
+                                    if fs is not None and replaceItem['ReplaceString'] == fs['ReplaceTag']:
+                                        replaceItem['ReplaceString'] = fs['FSInfo']['serviceurl']
+                                        replaceItem['ItemID'] = fs['FSInfo']['serviceItemId']
+                                        replaceItem['ItemFolder'] = fs['FSInfo']['folderId']
+                                    elif replaceItem.has_key('ItemID'):
+                                        if replaceItem.has_key('ItemFolder') == False:
+                        
+                                            itemID = replaceItem['ItemID']
+                                            itemInfo = admin.content.item(itemId=itemID)
+                                            if 'owner' in itemInfo:
+                                                if itemInfo['owner'] == self._securityHandler.username and 'ownerFolder' in itemInfo:
+                                                    replaceItem['ItemFolder'] = itemInfo['ownerFolder']
+                                                else:
+                                                    replaceItem['ItemFolder'] = None
                 
         
                 if map_info.has_key('ReplaceTag'):
