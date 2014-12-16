@@ -1,7 +1,7 @@
 #Solution Data Automation Reporting Tools
 Collection of ArcGIS for Utilities and ArcGIS for Telecommunication solutions
 
-Collection of Python tools to quickly create reports about your organization's assets and service area. These tools are used with the ArcGIS REST API for ArcGIS Server, ArcGIS Online, and ArcGIS WebMap JSON.
+Collection of Python tools to quickly create reports about your organization's assets and service area. These tools are used with [ArcRest](https://github.com/Esri/ArcREST) publish, manage and delete content from your ArcGIS Organization.
 
 [View a completed report](http://www.arcgis.com/home/webmap/viewer.html?webmap=f2cf26f0a3bf48a58c7bd9f80294d471)
 
@@ -20,7 +20,8 @@ Collection of Python tools to quickly create reports about your organization's a
 
 * Python 2.7.x
 * ArcPy
-* ArcGIS Desktop 10.2.x
+* ArcGIS Desktop 10.2.x, 10.3
+* [ArcRest](https://github.com/Esri/ArcREST)
 
 ## Installation
 
