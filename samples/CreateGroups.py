@@ -88,7 +88,8 @@ if __name__ == "__main__":
             
     except(TypeError,ValueError,AttributeError),e:
         print e
-              
+    except(ArcRestHelper.ArcRestHelperError),e:
+        print e              
     finally:
         print datetime.datetime.now().strftime(dateTimeFormat)
         print "###############Script Completed#################"
