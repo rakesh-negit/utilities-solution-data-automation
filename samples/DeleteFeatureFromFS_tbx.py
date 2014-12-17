@@ -42,16 +42,7 @@ def main(*argv):
         fsId = argv[3]
         layerNames = argv[4]
         sql = argv[5]
-        
-        #userName = 
-        #password = 
-        #org_url = 'www.arcgis.com'
-        #fsId = 
-        #layerName =
-        #dataToAppend = 
-                
-   
-
+    
         arh = ArcRestHelper.featureservicetools(username = userName, password=password,org_url=org_url,
                                                    token_url=None, 
                                                    proxy_url=None, 

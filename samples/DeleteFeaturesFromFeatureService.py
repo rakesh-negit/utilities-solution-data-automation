@@ -15,7 +15,7 @@ from arcpyhelper import Common
 
 log_file='../logs/DeleteFeatureServiceData.log'
 dateTimeFormat = '%Y-%m-%d %H:%M'
-#globalLoginInfo = '../configs/GlobalLoginInfo.json'
+globalLoginInfo = '../configs/GlobalLoginInfo.json'
 configFiles = ['../configs/WaterServices.json','../configs/TelcoServices.json','../configs/ElectricServices.json','../configs/GasServices.json']
 
 if __name__ == "__main__":
@@ -68,7 +68,9 @@ if __name__ == "__main__":
                     print " "
     except(TypeError,ValueError,AttributeError),e:
         print e
-              
+    except(ArcRestHelper.ArcRestHelperError),e:
+        print e
+                       
     finally:
         print datetime.datetime.now().strftime(dateTimeFormat)
         print "###############Script Completed#################"
