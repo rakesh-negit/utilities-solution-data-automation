@@ -16,7 +16,7 @@ import json
 
 log_file='..//logs/AppendToFeatureService.log'
 dateTimeFormat = '%Y-%m-%d %H:%M'
-globalLoginInfo = 'C:/Work/ArcGIS for Utilities/_Water/Staging/A4W-SubDMAProcessor-v1/Application/configs/GlobalLoginInfo.json'
+globalLoginInfo = '..//configs/___GlobalLoginInfo.json'
 
 if __name__ == "__main__":
     env.overwriteOutput = True
@@ -40,9 +40,10 @@ if __name__ == "__main__":
                                            token_url=None, 
                                            proxy_url=None, 
                                            proxy_port=None)
-        layerName='DMA Sensors'
-        itemId="c57ab2dfa74b4e8c8cf2d8578ea08436"
-        fc=r'C:\Work\ArcGIS for Utilities\_Water\Staging\A4W-SubDMAProcessor-v1\Maps and GDBs\DMA.gdb\DMASensors'
+        layerName='Leak Report'
+        itemId="15a35240e1c54c74ae877761963464fb"
+        fc=r'C:\Work\ArcGIS for Utilities\_Water\Staging\A4W-LeaksInvestigator_v1_4\Maps and GDBs\LeaksInvestigator.gdb\LeakReport'
+        atTable=r'C:\Work\ArcGIS for Utilities\_Water\Staging\A4W-LeaksInvestigator_v1_4\Maps and GDBs\LeaksInvestigator.gdb\LeakReport__ATTACH'
         if not arh is None:
             print "Security handler created"       
             fs = arh.GetFeatureService(itemId=itemId,returnURLOnly=False)
@@ -51,7 +52,7 @@ if __name__ == "__main__":
                 if not fs is None:                
                     fl = arh.GetLayerFromFeatureService(fs=fs,layerName=layerName,returnURLOnly=False)
                     if not fl is None:
-                        results = fl.addFeatures(fc=fc)        
+                        results = fl.addFeatures(fc=fc,attachmentTable=atTable)        
                         print json.dumps(results)
                     else:
                         print "Layer %s was not found, please check your credentials and layer name" % layerName     

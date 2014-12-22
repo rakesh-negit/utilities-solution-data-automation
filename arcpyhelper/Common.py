@@ -13,6 +13,7 @@ import gc
 class CommonError(Exception):
     """ raised when error occurs in utility module functions """
     pass
+
 #----------------------------------------------------------------------  
 def noneToValue(value,newValue):
     if value is None:

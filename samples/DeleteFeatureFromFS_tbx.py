@@ -1,10 +1,14 @@
 """
+    @author: ArcGIS for Water Utilities
+    @contact: ArcGISTeamUtilities@esri.com
     @company: Esri
-    @version: 1.0.0
-    @description: Appends features to a feature service
-    @requirements: Python 2.7.x, ArcGIS 10.1
+    @version: 1.1
+    @description: Used to delete content from a feature service
+    @requirements: Python 2.7.x, ArcGIS 10.2.1
     @copyright: Esri, 2014
 """
+
+import gc
 import os
 import sys
 import arcpy
@@ -12,28 +16,27 @@ import arcpy
 from arcpyhelper import ArcRestHelper
 from arcpyhelper import Common
 
-
-def trace():
-    """
-        trace finds the line, the filename and error message and returns it
-        to the user
-    """
-    import inspect
-    import traceback
-    import sys
-    tb = sys.exc_info()[2]
-    tbinfo = traceback.format_tb(tb)[0]
-    # script name + line number
-    line = tbinfo.split(", ")[1]
-    filename = inspect.getfile( inspect.currentframe() )
-    # Get Python syntax error
-    #
-    synerror = traceback.format_exc().splitlines()[-1]
-    return line, filename, synerror
-def outputPrinter(message):
-    arcpy.AddMessage(message=message)
+def outputPrinter(message,typeOfMessage='message'):
+    if typeOfMessage == "error":
+        arcpy.AddError(message=message)
+    elif typeOfMessage == "warning":
+        arcpy.AddWarning(message=message)
+    else:
+        arcpy.AddMessage(message=message)
+   
     print(message)
 def main(*argv):
+    userName = None
+    password = None
+    org_url = None
+    layerNames = None
+    layerName = None
+    layerName = None
+    sql = None 
+    arh = None
+    fs = None
+    results = None
+    fl = None    
     try:
     
         userName = argv[0]
@@ -44,76 +47,92 @@ def main(*argv):
         sql = argv[5]
     
         arh = ArcRestHelper.featureservicetools(username = userName, password=password,org_url=org_url,
-                                                   token_url=None, 
-                                                   proxy_url=None, 
-                                                   proxy_port=None)                    
+                                                      token_url=None, 
+                                                      proxy_url=None, 
+                                                      proxy_port=None)                    
         if not arh is None:
             outputPrinter(message="Security handler created")
                     
             fs = arh.GetFeatureService(itemId=fsId,returnURLOnly=False)
             if arh.valid:
                 outputPrinter("Logged in successful")        
-                if not fs is None:
-                    for layerName in layerNames.split(','):
+                if not fs is None:        
+                    for layerName in layerNames.split(','):        
                         fl = arh.GetLayerFromFeatureService(fs=fs,layerName=layerName,returnURLOnly=False)
                         if not fl is None:
-                            results = fl.deleteFeatures(where=sql)        
-                            outputPrinter (message=results)
+                            outputPrinter(message="Attempting to delete features matching this query: %s " % sql)
+                            results = fl.deleteFeatures(where=sql)       
+                          
+                            if 'error' in results:
+                                outputPrinter(message="Error in response from server: " % results['error'],typeOfMessage='error')
+                                arcpy.SetParameterAsText(6, "false")
+                                break
+                                  
+                            else:
+                                outputPrinter (message="%s features deleted" % len(results['deleteResults']) )
+                                arcpy.SetParameterAsText(6, "true")
                         else:
-                            
-                            outputPrinter(message="Layer %s was not found, please check your credentials and layer name" % layerName)        
+                            outputPrinter(message="Layer %s was not found, please check your credentials and layer name" % layerName,typeOfMessage='error')                            
+                            arcpy.SetParameterAsText(6, "false") 
+                            break
                 else:
-                    outputPrinter(message="Feature Service with id %s was not found" % fsId)                    
+                    outputPrinter(message="Feature Service with id %s was not found" % fsId,typeOfMessage='error')
+                    arcpy.SetParameterAsText(6, "false")
+              
             else:
-                outputPrinter(arh.message)   
+                outputPrinter(arh.message,typeOfMessage='error')   
                 arcpy.SetParameterAsText(6, "false")
                 
             
         else:
             outputPrinter(message="Security handler not created, exiting")
             arcpy.SetParameterAsText(6, "false")
-            
-        arcpy.SetParameterAsText(6, "true")
+                
     except arcpy.ExecuteError:
-        line, filename, synerror = trace()
-        outputPrinter("error on line: %s" % line)
-        outputPrinter("error in file name: %s" % filename)
-        outputPrinter("with error message: %s" % synerror)
-        outputPrinter("ArcPy Error Message: %s" % arcpy.GetMessages(2))
+        line, filename, synerror = Common.trace()
+        outputPrinter(message="error on line: %s" % line,typeOfMessage='error')
+        outputPrinter(message="error in file name: %s" % filename,typeOfMessage='error')
+        outputPrinter(message="with error message: %s" % synerror,typeOfMessage='error')
+        outputPrinter(message="ArcPy Error Message: %s" % arcpy.GetMessages(2),typeOfMessage='error')
+        arcpy.SetParameterAsText(6, "false")
+    except (Common.CommonError,ArcRestHelper.ArcRestHelperError),e:
+        outputPrinter(message=e,typeOfMessage='error')   
         arcpy.SetParameterAsText(6, "false")
     except:
-        line, filename, synerror = trace()
-        outputPrinter("error on line: %s" % line)
-        outputPrinter("error in file name: %s" % filename)
-        outputPrinter("with error message: %s" % synerror)
+        line, filename, synerror = Common.trace()
+        outputPrinter(message="error on line: %s" % line,typeOfMessage='error')
+        outputPrinter(message="error in file name: %s" % filename,typeOfMessage='error')
+        outputPrinter(message="with error message: %s" % synerror,typeOfMessage='error')
         arcpy.SetParameterAsText(6, "false")
     finally:
-        pass
+        userName = None
+        password = None
+        org_url = None
+        fsId = None
+        layerNames = None
+        layerName = None
+        sql = None 
+        arh = None
+        fs = None
+        results = None
+        fl = None
+        
+        del userName
+        del password
+        del org_url
+        del fsId
+        del layerNames
+        del layerName
+        del sql 
+        del arh
+        del fs
+        del results
+        del fl 
+         
+        
+        gc.collect()
 if __name__ == "__main__":
     argv = tuple(arcpy.GetParameterAsText(i)
         for i in xrange(arcpy.GetArgumentCount()))
     main(*argv)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
