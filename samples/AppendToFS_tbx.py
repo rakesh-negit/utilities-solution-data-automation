@@ -15,7 +15,6 @@ import arcpy
 from arcpyhelper import ArcRestHelper
 from arcpyhelper import Common
 
-
 def outputPrinter(message,typeOfMessage='message'):
     if typeOfMessage == "error":
         arcpy.AddError(message=message)
@@ -38,19 +37,19 @@ def main(*argv):
     fl = None
     try:
     
-        #userName = argv[0]
-        #password = argv[1]
-        #org_url = argv[2]
-        #fsId = argv[3]
-        #layerName = argv[4]
-        #dataToAppend = argv[5]
+        userName = argv[0]
+        password = argv[1]
+        org_url = argv[2]
+        fsId = argv[3]
+        layerName = argv[4]
+        dataToAppend = argv[5]
          
-        userName = "MikeSolutionsDemo"
-        password = 'double1pa'
-        org_url = 'www.arcgis.com'
-        fsId = 'a5eef930c18c4ef8abc2d7b4685bb92b'
-        layerName ='Sub District Metered Areas'
-        dataToAppend = r'C:\Work\ArcGIS for Utilities\_Water\Staging\A4W-SubDMAProcessor-v1\Maps and GDBs\DMA.gdb\PlanningSubDMA'
+        #userName = ""
+        #password = ''
+        #org_url = 'www.arcgis.com'
+        #fsId = 'a5eef930c18c4ef8abc2d7b4685bb92b'
+        #layerName ='Sub District Metered Areas'
+        #dataToAppend = r'C:\Work\ArcGIS for Utilities\_Water\Staging\A4W-SubDMAProcessor-v1\Maps and GDBs\DMA.gdb\PlanningSubDMA'
                 
    
         if arcpy.Exists(dataset=dataToAppend) == False:

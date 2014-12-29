@@ -7,7 +7,6 @@
     @requirements: Python 2.7.x, ArcGIS 10.2.1
     @copyright: Esri, 2014
 """
-
 import gc
 import os
 import sys
