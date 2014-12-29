@@ -1,19 +1,43 @@
+"""
+    @author: ArcGIS for Water Utilities
+    @contact: ArcGISTeamUtilities@esri.com
+    @company: Esri
+    @version: 1.1
+    @description: Used to stage the apps for sub dma consumption
+    @requirements: Python 2.7.x, ArcGIS 10.2.1
+    @copyright: Esri, 2014
+"""
+
+import gc
 import sys, os, datetime
-import csv
+from arcpy import env
 from arcpyhelper import ArcRestHelper
 from arcpyhelper import Common
+from arcpyhelper import ReportTools
+                                                                      
+log_file='./logs/DMASetup.log'
 
+configFiles=  ['./configs/DMASetup.json']
 
-log_file='..//logs/OrgContent.log'
-
-configFiles=  ['..//configs/WaterGroups.json']
-globalLoginInfo = '..//configs/___GlobalLoginInfoPortal.json'
-
+globalLoginInfo = './configs/GlobalLoginInfo.json'
 dateTimeFormat = '%Y-%m-%d %H:%M'
 
-if __name__ == "__main__":
-    log = Common.init_log(log_file=log_file)
+arh = None
+log = None
+webmaps = None
+cred_info = None
+loginInfo = None
+config = None 
+resultFS = None
+resultMaps = None
+resultApps = None
+combinedResults = None
  
+if __name__ == "__main__":
+    env.overwriteOutput = True
+
+    log = Common.init_log(log_file=log_file)
+
     try:
 
         if log is None:
@@ -29,55 +53,116 @@ if __name__ == "__main__":
                 cred_info = loginInfo['Credentials']
         if cred_info is None:
             print "Login info not found"
-        else: 
-            arh = ArcRestHelper.orgTools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
-                                               token_url=None, 
-                                               proxy_url=None, 
+        else:
+            arh = ArcRestHelper.publishingtools(username = cred_info['Username'], password=cred_info['Password'],org_url=cred_info['Orgurl'],
+                                               token_url=None,
+                                               proxy_url=None,
                                                proxy_port=None)
-            
             if arh is None:
                 print "Error: Security handler not created"
             else:
                 print "Security handler created"
-            
+
                 for configFile in configFiles:
-                 
+
                     config = Common.init_config_json(config_file=configFile)
                     if config is not None:
-                       
+
                         print " "
                         print "    ---------"
                         print "        Processing config %s" % configFile
+                        if  'Reports' in config:
+                            ReportTools.create_report_layers_using_config(config=config)
 
-                        contentInfo = config['ContentItems']
-                        for cont in contentInfo:
-                            content = cont['Content']
-                            group = cont['ShareToGroup']            
-            
-                            print "             Sharing content to: %s" % group
-                            if os.path.isfile(content):
-                                with open(content, 'rb') as csvfile:
-                                    items = []
-                                    groups = []
-                                    for row in csv.DictReader(csvfile,dialect='excel'):
-                                        if cont['Type'] == "Group":
-                                            groups.append(row['id'])         
-                                        elif cont['Type'] == "Items":
-                                            items.append(row['id'])
-                                    results = arh.shareItemsToGroup(shareToGroupName=group,items=items,groups=groups)
+                        if arh.valid:
+                            if 'PublishingDetails' in config:
+                                if 'FeatureServices' in config['PublishingDetails']:
+                                    resultFS = arh.publishFsFromMXD(fs_config=config['PublishingDetails']['FeatureServices'])
+                                if 'ExistingServices' in config['PublishingDetails']:
+                                    resultES = arh.updateFeatureService(efs_config=config['PublishingDetails']['ExistingServices'])       
+                                    
+                            if 'MapDetails' in config['PublishingDetails']:
+                                resultMaps = arh.publishMap(maps_info=config['PublishingDetails']['MapDetails'],fsInfo=resultFS)
+                                if resultMaps != None:
+                                    if config['PublishingDetails'].has_key('AppDetails'):
+                                        resultApps = arh.publishApp(app_info=config['PublishingDetails']['AppDetails'],map_info=resultMaps)
+                                    for maps in resultMaps:
+                                        if 'MapInfo' in maps:
+                                            if 'Results' in maps['MapInfo']:
+                                                if 'id' in maps['MapInfo']['Results']:
+                                                    webmaps.append(maps['MapInfo']['Results']['id'])
+
+                                else:
+                                    print arh.message
 
                         print "        Config %s completed" % configFile
-                        print "    ---------"                                            
+                        print "    ---------"
                     else:
                         print "Config %s not found" % configFile
-                    
-            
+                if 'combinedApp' in locals() or 'combinedApp' in globals():
+                    if os.path.exists(combinedApp):
+                        print " "
+                        print "    ---------"
+                        print "        Processing combined config %s" % combinedApp
+    
+                        config = Common.init_config_json(config_file=combinedApp)
+                        combinedResults = arh.publishCombinedWebMap(maps_info=config['PublishingDetails']['MapDetails'],webmaps=webmaps)
+                        if combinedResults != None:
+                            if config['PublishingDetails'].has_key('AppDetails'):
+                                resultApps = arh.publishApp(app_info=config['PublishingDetails']['AppDetails'],map_info=combinedResults)
+    
+                        print "        Combined Config %s completed" % combinedApp
+                        print "    ---------"
+ 
     except(TypeError,ValueError,AttributeError),e:
         print e
-              
+    except (ReportTools.ReportToolsError,ArcRestHelper.ArcRestHelperError,Common.CommonError),e:
+        print e
+    except:
+        line, filename, synerror = Common.trace()
+        print("error on line: %s" % line)
+        print("error in file name: %s" % filename)
+        print("with error message: %s" % synerror)
+        
     finally:
         print datetime.datetime.now().strftime(dateTimeFormat)
         print "###############Script Completed#################"
         print ""
         if log is not None:
             log.close()
+        if arh is not None:
+            arh.dispose()
+            
+        log = None
+        log_file = None       
+        configFiles = None       
+        globalLoginInfo = None
+        dateTimeFormat = None
+        combinedApp = None            
+        arh = None
+        webmaps = None
+        cred_info = None
+        loginInfo = None
+        config = None 
+        resultFS = None 
+        resultMaps = None 
+        resultApps = None
+        combinedResults = None        
+       
+        del log
+        del log_file       
+        del configFiles  
+        del globalLoginInfo
+        del dateTimeFormat
+        del combinedApp            
+        del arh      
+        del webmaps
+        del cred_info
+        del loginInfo
+        del config 
+        del resultFS
+        del resultMaps
+        del resultApps
+        del combinedResults                
+        
+        gc.collect()
