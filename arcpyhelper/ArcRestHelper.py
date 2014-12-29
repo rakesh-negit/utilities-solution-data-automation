@@ -1225,6 +1225,9 @@ class publishingtools():
         adminFS = None
         json_dict = None
         enableResults = None
+        layer = None
+        layers = None 
+        layUpdateResult = None
         try:
             # Report settings
             mxd = config['Mxd']
@@ -1430,7 +1433,7 @@ class publishingtools():
                                 updateResults = adminusercontent.updateItem(itemId=resultFS['services'][0]['serviceItemId'],
                                                                             updateItemParameters=updateParams,
                                                                             folderId=folderId)
-                                if enableEditTracking == True:
+                                if enableEditTracking == True or str(enableEditTracking).upper() == 'TRUE':
                                     adminFS = AdminFeatureService(url=resultFS['services'][0]['serviceurl'], securityHandler=self._securityHandler)
                                    
                                     json_dict = {'editorTrackingInfo':{}}
@@ -1439,9 +1442,21 @@ class publishingtools():
                                     json_dict['editorTrackingInfo']['enableEditorTracking'] = True
                                     json_dict['editorTrackingInfo']['enableOwnershipAccessControl'] = False
                                     
-                                    enableResults = adminFS.updateDefinition(json_dict=json.dumps(json_dict))
+                                    enableResults = adminFS.updateDefinition(json_dict=json_dict)
                                     if 'error' in enableResults:
                                         resultFS['services'][0]['messages'] = enableResults
+                                        
+                                    json_dict = {'editFieldsInfo':{}}
+                                
+                                    json_dict['editFieldsInfo']['creationDateField'] = ""
+                                    json_dict['editFieldsInfo']['creatorField'] = ""
+                                    json_dict['editFieldsInfo']['editDateField'] = ""
+                                    json_dict['editFieldsInfo']['editorField'] = ""  
+                                    layers = adminFS.layers
+                                    for layer in layers:
+                                        layUpdateResult = layer.addToDefinition(json_dict=json_dict)
+                                        if 'error' in layUpdateResult:
+                                            resultFS['services'][0]['messages'] = resultFS['services'][0]['messages'] + "|" + layUpdateResult['error']                                        
                                     adminFS = None     
                                     
                                     
@@ -1513,8 +1528,15 @@ class publishingtools():
             adminFS = None
             json_dict = None
             enableResults = None 
-            
+            layer = None
+            layers = None 
+            layUpdateResult = None            
+
+            del layer 
+            del layers 
+            del layUpdateResult   
             del mxd
+
             del q
             del everyone
             del org
