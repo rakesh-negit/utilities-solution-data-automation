@@ -35,7 +35,8 @@ def main(*argv):
     arh = None
     fs = None
     results = None
-    fl = None    
+    fl = None 
+    existingDef = None
     try:
     
         userName = argv[0]
@@ -44,7 +45,8 @@ def main(*argv):
         fsId = argv[3]
         layerNames = argv[4]
         sql = argv[5]
-    
+        toggleEditCapabilities = argv[6] 
+        
         arh = ArcRestHelper.featureservicetools(username = userName, password=password,org_url=org_url,
                                                       token_url=None, 
                                                       proxy_url=None, 
@@ -53,7 +55,10 @@ def main(*argv):
             outputPrinter(message="Security handler created")
                     
             fs = arh.GetFeatureService(itemId=fsId,returnURLOnly=False)
+                   
             if arh.valid:
+                if toggleEditCapabilities:          
+                    existingDef = arh.EnableEditingOnService(url=fs.url)                     
                 outputPrinter("Logged in successful")        
                 if not fs is None:        
                     for layerName in layerNames.split(','):        
@@ -69,6 +74,8 @@ def main(*argv):
                                   
                             else:
                                 outputPrinter (message="%s features deleted" % len(results['deleteResults']) )
+                                if toggleEditCapabilities:          
+                                    existingDef = arh.EnableEditingOnService(url=fs.url)                                
                                 arcpy.SetParameterAsText(6, "true")
                         else:
                             outputPrinter(message="Layer %s was not found, please check your credentials and layer name" % layerName,typeOfMessage='error')                            
@@ -104,6 +111,7 @@ def main(*argv):
         outputPrinter(message="with error message: %s" % synerror,typeOfMessage='error')
         arcpy.SetParameterAsText(6, "false")
     finally:
+        existingDef = None
         userName = None
         password = None
         org_url = None
@@ -116,6 +124,7 @@ def main(*argv):
         results = None
         fl = None
         
+        del existingDef
         del userName
         del password
         del org_url

@@ -247,8 +247,13 @@ def unicode_convert(obj):
         return obj
 def find_replace_string(obj,find,replace):
     try:
-        obj = str(obj)
-        return string.replace(obj,find, replace)
+        strobj = str(obj)
+        newStr =  string.replace(strobj,find, replace)
+        if newStr == strobj:
+            return obj
+        else:
+            return newStr
+        
     except:
         line, filename, synerror = trace()
         raise CommonError({

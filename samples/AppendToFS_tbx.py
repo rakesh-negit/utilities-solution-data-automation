@@ -35,22 +35,24 @@ def main(*argv):
     fs = None
     results = None
     fl = None
+    existingDef= None
     try:
     
-        userName = argv[0]
-        password = argv[1]
-        org_url = argv[2]
-        fsId = argv[3]
-        layerName = argv[4]
-        dataToAppend = argv[5]
-         
+        #userName = argv[0]
+        #password = argv[1]
+        #org_url = argv[2]
+        #fsId = argv[3]
+        #layerName = argv[4]
+        #dataToAppend = argv[5]
+        #toggleEditCapabilities = argv[6] 
+        
         #userName = ""
         #password = ''
         #org_url = 'www.arcgis.com'
-        #fsId = 'a5eef930c18c4ef8abc2d7b4685bb92b'
-        #layerName ='Sub District Metered Areas'
-        #dataToAppend = r'C:\Work\ArcGIS for Utilities\_Water\Staging\A4W-SubDMAProcessor-v1\Maps and GDBs\DMA.gdb\PlanningSubDMA'
-                
+        #fsId = ''
+        #layerName =''
+        #dataToAppend = r''
+        #toggleEditCapabilities = True  
    
         if arcpy.Exists(dataset=dataToAppend) == False:
             outputPrinter(message="Data layer not found: %" % dataToAppend)
@@ -63,6 +65,8 @@ def main(*argv):
                 outputPrinter(message="Security handler created")
                         
                 fs = arh.GetFeatureService(itemId=fsId,returnURLOnly=False)
+                if toggleEditCapabilities:          
+                    existingDef = arh.EnableEditingOnService(url=fs.url)
                 if arh.valid:
                     outputPrinter("Logged in successful")        
                     if not fs is None:                
@@ -76,6 +80,8 @@ def main(*argv):
                                   
                             else:
                                 outputPrinter (message="%s features added" % len(results['addResults']) )
+                                if toggleEditCapabilities:     
+                                    existingDef = arh.EnableEditingOnService(url=fs.url,definition = existingDef)
                                 arcpy.SetParameterAsText(6, "true")
                         
                         else:
@@ -111,6 +117,7 @@ def main(*argv):
         outputPrinter(message="with error message: %s" % synerror,typeOfMessage='error')
         arcpy.SetParameterAsText(6, "false")
     finally:
+        existingDef = None
         userName = None
         password = None
         org_url = None
@@ -122,6 +129,7 @@ def main(*argv):
         results = None
         fl = None
         
+        del existingDef 
         del userName
         del password
         del org_url

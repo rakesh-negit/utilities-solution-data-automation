@@ -744,7 +744,7 @@ class publishingtools():
             
                                 opLayer['url'] = opLayer['url'].replace(replaceItem['SearchString'],replaceItem['ReplaceString'])
                                 if replaceItem.has_key('ItemID'):
-                                    opLayer['itemId'] = replaceItem['ItemID']
+                                        opLayer['itemId'] = replaceItem['ItemID']
                                 else:
                                     opLayer['itemId'] = None
                                     #opLayer['itemId'] = get_guid()
@@ -1228,6 +1228,7 @@ class publishingtools():
         layer = None
         layers = None 
         layUpdateResult = None
+        definition = None
         try:
             # Report settings
             mxd = config['Mxd']
@@ -1246,7 +1247,13 @@ class publishingtools():
             folderName = config['Folder']
             thumbnail = config['Thumbnail']
             
-            capabilities = config['Capabilities']
+            if 'Capabilities' in config:
+                capabilities = config['Capabilities']
+            if 'Definition' in config:
+                definition = config['Definition']
+              
+                if 'capabilities' in definition:               
+                    capabilities = definition['capabilities']
             if config.has_key("maxRecordCount"):
                 maxRecordCount =  config["maxRecordCount"]
             else:
@@ -1433,8 +1440,9 @@ class publishingtools():
                                 updateResults = adminusercontent.updateItem(itemId=resultFS['services'][0]['serviceItemId'],
                                                                             updateItemParameters=updateParams,
                                                                             folderId=folderId)
+                                adminFS = AdminFeatureService(url=resultFS['services'][0]['serviceurl'], securityHandler=self._securityHandler)
+                                
                                 if enableEditTracking == True or str(enableEditTracking).upper() == 'TRUE':
-                                    adminFS = AdminFeatureService(url=resultFS['services'][0]['serviceurl'], securityHandler=self._securityHandler)
                                    
                                     json_dict = {'editorTrackingInfo':{}}
                                     json_dict['editorTrackingInfo']['allowOthersToDelete'] = True
@@ -1457,9 +1465,13 @@ class publishingtools():
                                         layUpdateResult = layer.addToDefinition(json_dict=json_dict)
                                         if 'error' in layUpdateResult:
                                             resultFS['services'][0]['messages'] = resultFS['services'][0]['messages'] + "|" + layUpdateResult['error']                                        
-                                    adminFS = None     
                                     
                                     
+                                if definition is not None:
+                                    enableResults = adminFS.updateDefinition(json_dict=definition)
+                                    if 'error' in enableResults:
+                                        resultFS['services'][0]['messages'] = enableResults                                    
+                                
                                 resultFS['services'][0]['folderId'] = folderId
                                 return resultFS['services'][0]
                             
@@ -1492,6 +1504,7 @@ class publishingtools():
                                         )
            
         finally: 
+            definition = None
             mxd = None
             q = None
             everyone = None
@@ -1532,6 +1545,7 @@ class publishingtools():
             layers = None 
             layUpdateResult = None            
 
+            del definition
             del layer 
             del layers 
             del layUpdateResult   
@@ -1826,7 +1840,8 @@ class publishingtools():
             
             itemParams.overwrite = True
             itemParams.description = description
-            
+            itemParams.tags = tags
+            itemParams.snippet = snippet
             itemParams.typeKeywords = ",".join(typeKeywords)
             
             adminusercontent = admin.content.usercontent()
@@ -1842,6 +1857,8 @@ class publishingtools():
                     pass
            
             folderContent = admin.content.getUserContent(folderId=folderId)
+            if 'folderId' in itemData:
+                itemData['folderId'] = folderId
                 
             itemID = admin.content.getItemID(title=name,itemType=itemType,userContent=folderContent)
             if not itemID is None:
@@ -2473,7 +2490,32 @@ class featureservicetools():
     def valid(self):
         """ returns boolean wether handler is valid """
         return self._valid
-    #----------------------------------------------------------------------    
+    #----------------------------------------------------------------------   
+    def EnableEditingOnService(self, url, definition = None):
+        adminFS = AdminFeatureService(url=url, securityHandler=self._securityHandler)
+        
+        if definition is None:
+            definition = {}
+        
+            definition['capabilities'] = "Create,Delete,Query,Update,Editing"
+            definition['allowGeometryUpdates'] = True                  
+            
+        existingDef = {}
+                
+        existingDef['capabilities']  = adminFS.capabilities        
+        existingDef['allowGeometryUpdates'] = adminFS.allowGeometryUpdates
+               
+        enableResults = adminFS.updateDefinition(json_dict=definition)
+                                   
+        if 'error' in enableResults:
+            return enableResults['error']                                        
+        adminFS = None
+        del adminFS
+       
+                        
+        return existingDef
+    #----------------------------------------------------------------------   
+        
     def GetFeatureService(self,itemId,returnURLOnly=False):
         admin = None
         item = None

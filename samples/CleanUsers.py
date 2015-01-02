@@ -46,9 +46,11 @@ if __name__ == "__main__":
             else:
                 print "Security handler created"
 
-                users = {'users':[{'username':cred_info['Username']}]}
-                arh.removeUserData(users=users)
-                arh.removeUserGroups(users=users)
+                #users = {'users':[{'username':cred_info['Username']}]}
+                #arh.removeUserData(users=users)
+                #arh.removeUserGroups(users=users
+                arh.removeUserData()
+                arh.removeUserGroups()                
     except(TypeError,ValueError,AttributeError),e:
         print e
     except(ArcRestHelper.ArcRestHelperError),e:
