@@ -38,13 +38,13 @@ def main(*argv):
     existingDef= None
     try:
     
-        #userName = argv[0]
-        #password = argv[1]
-        #org_url = argv[2]
-        #fsId = argv[3]
-        #layerName = argv[4]
-        #dataToAppend = argv[5]
-        #toggleEditCapabilities = argv[6] 
+        userName = argv[0]
+        password = argv[1]
+        org_url = argv[2]
+        fsId = argv[3]
+        layerName = argv[4]
+        dataToAppend = argv[5]
+        toggleEditCapabilities = argv[6] 
         
         #userName = ""
         #password = ''
@@ -65,11 +65,12 @@ def main(*argv):
                 outputPrinter(message="Security handler created")
                         
                 fs = arh.GetFeatureService(itemId=fsId,returnURLOnly=False)
-                if toggleEditCapabilities:          
-                    existingDef = arh.EnableEditingOnService(url=fs.url)
+               
                 if arh.valid:
                     outputPrinter("Logged in successful")        
-                    if not fs is None:                
+                    if not fs is None:
+                        if toggleEditCapabilities:          
+                            existingDef = arh.EnableEditingOnService(url=fs.url)                        
                         fl = arh.GetLayerFromFeatureService(fs=fs,layerName=layerName,returnURLOnly=False)
                         if not fl is None:
                             results = fl.addFeatures(fc=dataToAppend)        

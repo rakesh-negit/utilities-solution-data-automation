@@ -57,10 +57,11 @@ def main(*argv):
             fs = arh.GetFeatureService(itemId=fsId,returnURLOnly=False)
                    
             if arh.valid:
-                if toggleEditCapabilities:          
-                    existingDef = arh.EnableEditingOnService(url=fs.url)                     
+                               
                 outputPrinter("Logged in successful")        
                 if not fs is None:        
+                    if toggleEditCapabilities:          
+                        existingDef = arh.EnableEditingOnService(url=fs.url)                         
                     for layerName in layerNames.split(','):        
                         fl = arh.GetLayerFromFeatureService(fs=fs,layerName=layerName,returnURLOnly=False)
                         if not fl is None:
