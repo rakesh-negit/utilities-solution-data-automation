@@ -19,7 +19,7 @@ log_file='./logs/DMASetup.log'
 
 configFiles=  ['./configs/DMASetup.json']
 
-globalLoginInfo = './configs/GlobalLoginInfo.json'
+globalLoginInfo = '..//configs/GlobalLoginInfo.json'
 dateTimeFormat = '%Y-%m-%d %H:%M'
 
 arh = None
