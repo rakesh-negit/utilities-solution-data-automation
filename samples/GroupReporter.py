@@ -7,7 +7,7 @@ import csv,json
 
 log_file='..//logs/GroupReporter.log'
 
-configFiles=  ['..//configs/WaterGroups.json']
+configFiles=  ['..//configs/UtilitiesTryItLive.json']
 globalLoginInfo = '..//configs/___GlobalLoginInfo.json'
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
@@ -16,6 +16,22 @@ def noneToString(value):
         return ""
     else:
         return value
+def trace():
+    """
+        trace finds the line, the filename
+        and error message and returns it
+        to the user
+    """
+    import traceback
+ 
+    tb = sys.exc_info()[2]
+    tbinfo = traceback.format_tb(tb)[0]
+    # script name + line number
+    line = tbinfo.split(", ")[1]
+    # Get Python syntax error
+    #
+    synerror = traceback.format_exc().splitlines()[-1]
+    return line, __file__, synerror
 if __name__ == "__main__":
     log = Common.init_log(log_file=log_file)
  
@@ -44,101 +60,71 @@ if __name__ == "__main__":
                 print "Error: Security handler not created"
             else:
                 print "Security handler created"
-                groupName = "Portland Water Conf"
-                results = arh.getGroupContent(groupName=groupName)  
-                groups=[]
-                if 'results' in results:
-                    file = io.open("groupReport.json", "w", encoding='utf-8')
-                    #file.write(unicode("'Groups':["))
-                    for result in results['results']:
-                        thumbLocal = arh.getThumbnailForItem(itemId=result['id'],fileName=result['title'],filePath='C:\\temp')
-                        result['thumbnail']=thumbLocal
-                        groups.append(result)
-                        #file.write(unicode(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))))
-                    file.write(unicode(json.dumps(groups, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))))
-                    
-                    #file.write(unicode("]"))
-                #if os.path.abspath(iconPath):
-        
-                    #sciptPath = os.getcwd()
-        
-                    #iconPath = os.path.join(sciptPath,iconPath)
-        
-                #for group in groups:
-                    #image = Portal.group_thumbnaild(portal, group['id'],iconPath)
-                    #print(image)
-        
               
-                file.close()                
-                #with open('groupReport.csv', 'w') as csvfile:
-                    #fieldnames = ['name','title','type','itemType','description','tags','snippet','thumbnail','extent','accessInformation','licenseInfo','itemData']
-                    #writer = csv.DictWriter(csvfile, fieldnames=fieldnames, restval=None)
-                
-                    #writer.writeheader()
-                    #for item in results:
-                        #writer.writerow(item)
-                            
-                    
-                #with open('groupReport.csv', 'wb') as csvfile:
-                    #csvWriter = csv.writer(csvfile, delimiter=',',
-                                            #quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                    #csvWriter.writerow("name,title,type,itemType,description,tags,snippet,thumbnail,extent,accessInformation,licenseInfo,itemData")
-                    #for item in results:
-                                     
-                        #csvLine = noneToString(item.name) + ","
-                        #csvLine = csvLine + noneToString(item.title) + ","
-                        #csvLine = csvLine + noneToString(item.type) + ","
-                        #csvLine = csvLine + noneToString(item.itemType) + ","
-                        #csvLine = csvLine + noneToString(item.description) + ","
-                        #csvLine = csvLine + noneToString(item.tags) + ","
-                        #csvLine = csvLine + noneToString(item.snippet) + ","
-                        #csvLine = csvLine + noneToString(item.thumbnail) + ","
-                        #csvLine = csvLine + noneToString(item.extent) + ","
-                        #csvLine = csvLine + noneToString(item.accessInformation) + ","
-                        #csvLine = csvLine + noneToString(item.licenseInfo) + ","
-                        #csvLine = csvLine + noneToString(item.itemData)                    
-                        #csvWriter.writerow(csvLine)                
-              
-                #file = io.open("groupReport.csv", "w", encoding='utf-8')
-                #file.write("name,title,type,itemType,description,tags,snippet,thumbnail,extent,accessInformation,licenseInfo,itemData")
-                #for item in results:
-                    
-                    #csvLine = item.name + ","
-                    #csvLine = csvLine + item.title + ","
-                    #csvLine = csvLine + item.type + ","
-                    #csvLine = csvLine + item.itemType + ","
-                    #csvLine = csvLine + item.description + ","
-                    #csvLine = csvLine + item.tags + ","
-                    #csvLine = csvLine + item.snippet + ","
-                    #csvLine = csvLine + item.thumbnail + ","
-                    #csvLine = csvLine + item.extent + ","
-                    #csvLine = csvLine + item.accessInformation + ","
-                    #csvLine = csvLine + item.licenseInfo + ","
-                    #csvLine = csvLine + item.itemData + ","
-                    #file.write(csvLine)
-                #file.close()              
-                #for configFile in configFiles:
-        
-                    #config = Common.init_config_json(config_file=configFile)
-                    #if config is not None:
-                       
-                        #print " "
-                        #print "    ---------"
-                        #print "        Processing config %s" % configFile
-
-                        #print "        Config %s completed" % configFile
-                        #print "    ---------"                                            
-                    #else:
-                        #print "Config %s not found" % configFile
-                    
             
+                groups=[]
+             
+                for configFile in configFiles:
+                 
+                    config = Common.init_config_json(config_file=configFile)
+                    if config is not None:
+                          
+                        print " "
+                        print "    ---------"
+                        print "        Processing config %s" % configFile
+                                  
+                        if 'Groups' in config:
+                            fileName = os.path.join(config['OutputPath'],config['OutputFileName'])
+                            iconPath = os.path.join(config['OutputPath'],"icons")
+                            if not os.path.exists(iconPath):
+                                os.makedirs(iconPath)                            
+                            file = io.open(fileName, "w", encoding='utf-8')                                               
+                            for groupName in config['Groups']:
+                                results = arh.getGroupContent(groupName=groupName)  
+                               
+                                if 'results' in results:
+                                  
+                                    for result in results['results']:
+                                        thumbLocal = arh.getThumbnailForItem(itemId=result['id'],fileName=result['title'],filePath=iconPath)
+                                        result['thumbnail']=thumbLocal
+                                        groups.append(result)
+                                       
+                            if len(groups) > 0:
+                                file.write(unicode(json.dumps(groups, ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))))                                              
+                            file.close()                                                                                    
+                        else:
+                            print "        ERROR: Config %s is missing the Groups parameter" % configFile
+                      
+                        print "        Config %s completed" % configFile
+                        print "    ---------"                                            
+                    else:
+                        print "Config %s not found" % configFile
+                                           
+                         
     except(TypeError,ValueError,AttributeError),e:
         print e
     except(ArcRestHelper.ArcRestHelperError),e:
-        print e              
+        print e
+    except:
+        line, filename, synerror = trace()
+        arcpy.AddError("error on line: %s" % line)
+        arcpy.AddError("error in file name: %s" % filename)
+        arcpy.AddError("with error message: %s" % synerror)                  
     finally:
         print datetime.datetime.now().strftime(dateTimeFormat)
         print "###############Script Completed#################"
         print ""
         if log is not None:
             log.close()
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
