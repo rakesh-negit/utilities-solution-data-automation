@@ -1475,13 +1475,11 @@ class publishingtools():
                 #if not itemID is None:
                     #delres=adminusercontent.deleteItems(items=itemID)  
                 
-                #resultFS = adminusercontent.publishItem(
-                    #fileType="serviceDefinition",
-                    #itemId=resultSD['id'],
-                    #publishParameters=publishParameters)                        
                 resultFS = adminusercontent.publishItem(
                     fileType="serviceDefinition",
-                    itemId=resultSD['id'])         
+                    itemId=resultSD['id'],
+                    publishParameters=publishParameters)                        
+                 
                 if 'services' in resultFS:
                     if len(resultFS['services']) > 0:
                         
@@ -1513,13 +1511,11 @@ class publishingtools():
                             else:
                                 print "            Item cannot be found"
                                 
-                            #resultFS = adminusercontent.publishItem(
-                                           #fileType="serviceDefinition",
-                                           #itemId=resultSD['id'],
-                                           #publishParameters=publishParameters)                        
                             resultFS = adminusercontent.publishItem(
-                                            fileType="serviceDefinition",
-                                            itemId=resultSD['id'])                                                    
+                                           fileType="serviceDefinition",
+                                           itemId=resultSD['id'],
+                                           publishParameters=publishParameters)                        
+                                                                 
                         if 'error' in resultFS:
                             return resultFS
                         #if 'services' in resultFS:
@@ -1546,10 +1542,7 @@ class publishingtools():
                                     print delres
                                     return delres
                                 print "            Delete successful"
-                                #resultFS = adminusercontent.publishItem(
-                                               #fileType="serviceDefinition",
-                                               #itemId=resultSD['id'],
-                                               #publishParameters=publishParameters)  
+                               
                                 resultFS = adminusercontent.publishItem(
                                                 fileType="serviceDefinition",
                                                 itemId=resultSD['id'],
