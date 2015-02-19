@@ -1475,11 +1475,13 @@ class publishingtools():
                 #if not itemID is None:
                     #delres=adminusercontent.deleteItems(items=itemID)  
                 
+                #resultFS = adminusercontent.publishItem(
+                    #fileType="serviceDefinition",
+                    #itemId=resultSD['id'],
+                    #publishParameters=publishParameters)                        
                 resultFS = adminusercontent.publishItem(
                     fileType="serviceDefinition",
-                    itemId=resultSD['id'],
-                    publishParameters=publishParameters)                        
-        
+                    itemId=resultSD['id'])         
                 if 'services' in resultFS:
                     if len(resultFS['services']) > 0:
                         
@@ -1511,12 +1513,18 @@ class publishingtools():
                             else:
                                 print "            Item cannot be found"
                                 
+                            #resultFS = adminusercontent.publishItem(
+                                           #fileType="serviceDefinition",
+                                           #itemId=resultSD['id'],
+                                           #publishParameters=publishParameters)                        
                             resultFS = adminusercontent.publishItem(
-                                           fileType="serviceDefinition",
-                                           itemId=resultSD['id'],
-                                           publishParameters=publishParameters)                        
+                                            fileType="serviceDefinition",
+                                            itemId=resultSD['id'])                                                    
                         if 'error' in resultFS:
                             return resultFS
+                        #if 'services' in resultFS:
+                            #if resultFS['services']['success']     == 'false':
+                                #return 
                         status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
                                                          jobId=resultFS['services'][0]['jobId'],
                                                          jobType='publish')
@@ -1538,10 +1546,14 @@ class publishingtools():
                                     print delres
                                     return delres
                                 print "            Delete successful"
+                                #resultFS = adminusercontent.publishItem(
+                                               #fileType="serviceDefinition",
+                                               #itemId=resultSD['id'],
+                                               #publishParameters=publishParameters)  
                                 resultFS = adminusercontent.publishItem(
-                                               fileType="serviceDefinition",
-                                               itemId=resultSD['id'],
-                                               publishParameters=publishParameters)                        
+                                                fileType="serviceDefinition",
+                                                itemId=resultSD['id'],
+                                                publishParameters=publishParameters)                                  
                                 if 'error' in resultFS:
                                     return resultFS
                                 status = adminusercontent.status(itemId=resultFS['services'][0]['serviceItemId'],
@@ -2018,9 +2030,10 @@ class publishingtools():
                                        org=org)
                 updateParams = arcrest.manageorg.ItemParameter()             
                 updateParams.title = name
-                portal = admin.portals(portalId="self")
+                portal = admin.portals()
                 url = url.replace("{AppID}",resultApp['Results']['id'])
-                url = url.replace("{OrgURL}", portal.portalProperties['urlKey'] + '.' + portal.portalProperties['customBaseUrl'])
+                portalProp = portal.portalProperties
+                url = url.replace("{OrgURL}", portalProp['urlKey'] + '.' + portalProp['customBaseUrl'])
                              
                 updateResults = adminusercontent.updateItem(itemId=resultApp['Results']['id'],
                                                             url=url,        
