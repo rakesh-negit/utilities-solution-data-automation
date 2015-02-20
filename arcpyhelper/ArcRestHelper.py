@@ -967,8 +967,9 @@ class publishingtools():
             itemParams.thumbnail = thumbnail
             itemParams.type = "Web Map"
             itemParams.overwrite = True
-            itemParams.description = description
+            itemParams.snippet = description
             itemParams.extent = extent
+            itemParams.tags = tags
             itemParams.typeKeywords = ",".join(typeKeywords)
             
             adminusercontent = admin.content.usercontent()
