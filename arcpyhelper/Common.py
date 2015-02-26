@@ -34,14 +34,7 @@ def getLayerIndex(url):
             return int(inx)
        
     except:
-        line, filename, synerror = trace()
-        raise CommonError({
-                    "function": "getLayerIndex",
-                    "line": line,
-                    "filename":  filename,
-                    "synerror": synerror,
-                                    }
-                                    )
+        return 0
     finally:                
         urlInfo = None
         urlSplit = None
@@ -60,14 +53,8 @@ def getLayerName(url):
         name = urlSplit[len(urlSplit)-3]
         return name   
     except:
-        line, filename, synerror = trace()
-        raise CommonError({
-                    "function": "getLayerName",
-                    "line": line,
-                    "filename":  filename,
-                    "synerror": synerror,
-                                    }
-                                    )
+        return url
+                                    
     finally:                
         urlInfo = None
         urlSplit = None
