@@ -967,7 +967,8 @@ class publishingtools():
             itemParams.thumbnail = thumbnail
             itemParams.type = "Web Map"
             itemParams.overwrite = True
-            itemParams.snippet = description
+            itemParams.snippet = snippet
+            itemParams.description = description
             itemParams.extent = extent
             itemParams.tags = tags
             itemParams.typeKeywords = ",".join(typeKeywords)
@@ -1978,6 +1979,7 @@ class publishingtools():
             itemParams.description = description
             itemParams.tags = tags
             itemParams.snippet = snippet
+            itemParams.description = description
             itemParams.typeKeywords = ",".join(typeKeywords)
             
             adminusercontent = admin.content.usercontent()
@@ -2286,7 +2288,7 @@ class publishingtools():
             
             itemParams.overwrite = True
             itemParams.description = description
-            
+            itemParams.snippet = snippet
             itemParams.typeKeywords = ",".join(typeKeywords)
             
             adminusercontent = admin.content.usercontent()
