@@ -2,11 +2,11 @@ from distutils.core import setup
 setup(
     author="Mike Miller",
     author_email="mmiller@esri.com",
-    description="Helper functions for ArcPy and ArcRest",
+    description="ArcGIS solution reporting tools",
     license='Apache',
     url='www.github.com/MikeMillerGIS/solutions-data-automation',
-    name='ArcPyHelper',
+    name='solutionreporttools',
     version='2.0.0',
-    packages=['arcpyhelper'],
+    packages=['solutionreporttools'],
     package_dir={'':''}
     )

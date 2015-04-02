@@ -7,7 +7,7 @@ import csv,json
 
 log_file='..//logs/GroupReporter.log'
 
-configFiles=  ['..//configs/UtilitiesTryItLive.json']
+configFiles=  ['..//configs/UtilitiesTryItLive.json','..//configs/UtilitiesTryItLive.json','..//configs/UtilitiesTryItLive.json','..//configs/UtilitiesTryItLive.json','..//configs/UtilitiesTryItLive.json','..//configs/UtilitiesTryItLive.json']
 globalLoginInfo = '..//configs/___GlobalLoginInfo.json'
 
 dateTimeFormat = '%Y-%m-%d %H:%M'

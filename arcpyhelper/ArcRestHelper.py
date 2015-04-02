@@ -603,15 +603,34 @@ class publishingtools():
                                                               org_url=self._org_url, 
                                                               token_url=self._token_url, 
                                                               proxy_url=self._proxy_url, 
-                                                              proxy_port=self._proxy_port)         
+                                                              proxy_port=self._proxy_port)      
+            token = self._securityHandler.token
+            #if 'error' in self._securityHandler.message and token is None:
+                #if self._securityHandler.message['error']['code'] == 400:
+    
+                    #self._securityHandler = arcrest.OAuthSecurityHandler(client_id='', 
+                                                                         #secret_id='', 
+                                                                         #org_url=self._org_url, 
+                                                                         #proxy_url=self._proxy_url, 
+                                                                         #proxy_port=self._proxy_port)  
+                    #token = self._securityHandler.token          
         else:
            
             self._securityHandler = arcrest.PortalTokenSecurityHandler(username=self._username, 
                                                               password=self._password, 
                                                               org_url=self._org_url, 
                                                               proxy_url=self._proxy_url, 
-                                                              proxy_port=self._proxy_port)            
-        
+                                                              proxy_port=self._proxy_port)      
+            token = self._securityHandler.token
+            #if 'error' in self._securityHandler.message and token is None:
+                #if self._securityHandler.message['error']== 401:
+                    
+                    #self._securityHandler = arcrest.OAuthSecurityHandler(client_id='s5CKlHcJoNSm07TP', 
+                                                                           #secret_id='6015feb0f44c4a5fa00e1e9486de8c48', 
+                                                                           #org_url=self._org_url, 
+                                                                           #proxy_url=self._proxy_url, 
+                                                                           #proxy_port=self._proxy_port)  
+                    #token = self._securityHandler.token
 
     #----------------------------------------------------------------------  
     def dispose(self):
