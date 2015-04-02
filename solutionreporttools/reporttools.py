@@ -6,6 +6,8 @@ from arcpy import env
 from copy import deepcopy
 import gc
 import time
+# New CSV exporter class
+import csvexport as CSVExport
 
 from dateutil.parser import parse
 
@@ -24,35 +26,46 @@ def create_report_layers_using_config(config):
     report_msg = None
     try:
 
+        #To handle CSV export, a temp FC is created.  This code just checks and deletes it, if it exist.
+        _TempFC = os.path.abspath(config["ResultsGDB"] + "/" + "CSVTemp")
+        deleteFC([_TempFC])
+
         reports =  config['Reports']
 
         report_msg = []
         for i in reports:
-            if i['Type'].upper()== "JOINCALCANDLOAD":
-                create_calcload_report(report_params=i)
-            elif i['Type'].upper()== "RECLASS":
-                reporting_areas = i ['ReportingAreas']
-                if not os.path.isabs(reporting_areas):
-                    reporting_areas = os.path.abspath(reporting_areas)
+            if i['RunReport'].upper() == "YES":
+                if i['Type'].upper()== "JOINCALCANDLOAD":
+                    create_calcload_report(report_params=i,datasources=config)
+                elif i['Type'].upper()== "RECLASS":
+                    reporting_areas = config['ReportingAreas']
+                    if not os.path.isabs(reporting_areas):
+                        reporting_areas = os.path.abspath(reporting_areas)
 
 
-                reporting_areas_ID_field = i ['ReportingAreasIDField']
+                    reporting_areas_ID_field = config['ReportingAreasIDField']
 
-                report_msg.append(create_reclass_report(reporting_areas=reporting_areas,
-                                     reporting_areas_ID_field=reporting_areas_ID_field,
-                                     report_params=i))
-            elif i['Type'].upper()== "AVERAGE":
-                reporting_areas = i['ReportingAreas']
-                if not os.path.isabs(reporting_areas):
-                    reporting_areas =os.path.abspath(reporting_areas)
+                    report_msg.append(create_reclass_report(reporting_areas=reporting_areas,
+                                         reporting_areas_ID_field=reporting_areas_ID_field,
+                                         report_params=i,datasources=config))
+                elif i['Type'].upper()== "AVERAGE":
+                    reporting_areas = config['ReportingAreas']
+                    if not os.path.isabs(reporting_areas):
+                        reporting_areas =os.path.abspath(reporting_areas)
 
-                reporting_areas_ID_field = i['ReportingAreasIDField']
+                    reporting_areas_ID_field = config['ReportingAreasIDField']
 
-                report_msg.append(create_average_report(reporting_areas=reporting_areas,
-                                     reporting_areas_ID_field=reporting_areas_ID_field,
-                                     report_params=i))
-            else:
-                print "Unsupported report type"
+                    report_msg.append(create_average_report(reporting_areas=reporting_areas,
+                                         reporting_areas_ID_field=reporting_areas_ID_field,
+                                         report_params=i,datasources=config))
+                else:
+                    print "Unsupported report type"
+
+        # After all the different reports have been run, export a single CSV of results.
+        csvProcess = CSVExport.CSVExport(configParams=config)
+        report_msg.append(csvProcess.WriteCSV())
+
+
         if 'error' in report_msg:
             return False
         else:
@@ -111,7 +124,7 @@ def create_calcload_report(report_params):
 
         filt_layer = "filter_layer"
 
-        reporting_layer = report_params['Data']
+        reporting_layer = datasources["Data"][report_params['Data']]
         reporting_layer_id_field = report_params['DataIDField']
         joinInfo = report_params['JoinInfo']
 
@@ -120,8 +133,8 @@ def create_calcload_report(report_params):
         sql = report_params['FilterSQL']
 
         report_date = report_params["ReportDateField"]
-        report_schema = report_params['ReportResultSchema']
-        report_result = report_params['ReportResult']
+        report_schema = datasources["SchemaGDB"] + "/" + report_params['ReportResultSchema']
+        report_result = datasources["ResultsGDB"] + "/" + report_params['ReportResult']
 
         #if not os.path.isabs(report_result):
             #report_result = os.path.abspath( report_result)
@@ -226,7 +239,7 @@ def create_calcload_report(report_params):
 
         gc.collect()
 #----------------------------------------------------------------------
-def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params):
+def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params,datasources):
     classified_layer_field_name = None
     filt_layer = None
     reporting_layer = None
@@ -249,7 +262,8 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
 
         filt_layer = "filter_layer"
 
-        reporting_layer = report_params['Data']
+        #reporting_layer = report_params['Data']
+        reporting_layer = datasources["Data"][report_params['Data']]
         field_map = report_params['FieldMap']
         sql = report_params['FilterSQL']
 
@@ -257,8 +271,8 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         count_field = report_params['CountField']
         reclass_map = report_params['ReclassMap']
 
-        report_schema = report_params['ReportResultSchema']
-        report_result = report_params['ReportResult']
+        report_schema = datasources["SchemaGDB"] + "/" + report_params['ReportResultSchema']
+        report_result = datasources["ResultsGDB"] + "/" + report_params['ReportResult']
 
         if not os.path.isabs(report_result):
             report_result =os.path.abspath( report_result)
@@ -266,6 +280,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         if not os.path.isabs(report_schema):
             report_schema =os.path.abspath( report_schema)
 
+        report_append_flag = report_params['ReportAppend']
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
         result_exp = report_params['FinalResultExpression']
@@ -287,22 +302,25 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                               report_result=report_result,
                               reclass_map=reclass_map,
                               report_date_field=report_date_field,
-                              report_ID_field=report_ID_field)
+                              report_ID_field=report_ID_field,
+                              reportParam=report_params,
+                              config=datasources)
             print "            %s was created" % report_result
         else:
+            #print "at split_reclass"
             classified_layer = split_reclass(reporting_areas=reporting_areas, reporting_areas_ID_field=reporting_areas_ID_field,reporting_layer=filt_layer,field_map=field_map,
                                              reclass_map=reclass_map,classified_layer_field_name = classified_layer_field_name)
-
+            #print "at classified_pivot"
             pivot_layer = classified_pivot(classified_layer =classified_layer, classified_layer_field_name= classified_layer_field_name,
                                            reporting_areas_ID_field=reporting_areas_ID_field,count_field=count_field)
-
+            #print "at copy_report_data_schema"
             report_copy = copy_report_data_schema(reporting_areas=reporting_areas,reporting_areas_ID_field=reporting_areas_ID_field,report_schema=report_schema,
-                                                  report_result=report_result,join_layer=pivot_layer)
+                                                  report_result=report_result,join_layer=pivot_layer,report_append_flag=report_append_flag)
 
-
+            #print "at calculate_report_results"
             calculate_report_results(report_result=report_result,  reporting_areas_ID_field=reporting_areas_ID_field,report_copy=report_copy,
-                                     reclass_map=reclass_map, report_date_field=report_date_field,report_ID_field=report_ID_field, exp=result_exp)
-
+                                     reclass_map=reclass_map, report_date_field=report_date_field,report_ID_field=report_ID_field, exp=result_exp, reportParam=report_params, config=datasources)
+            #print "at deleteFC"
             deleteFC([classified_layer,pivot_layer,report_copy])
 
             print "            %s was created" % report_result
@@ -363,7 +381,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         gc.collect()
 
 #----------------------------------------------------------------------
-def create_average_report(reporting_areas,reporting_areas_ID_field,report_params):
+def create_average_report(reporting_areas,reporting_areas_ID_field,report_params,datasources):
     filt_layer = None
     reporting_layer = None
     field_map = None
@@ -382,14 +400,14 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
     try:
 
         filt_layer = "filter_layer"
-        reporting_layer = report_params['Data']
+        reporting_layer = datasources["Data"][report_params['Data']]
         field_map = report_params['FieldMap']
         sql = report_params['FilterSQL']
 
         code_exp = report_params['PreCalcExpression']
 
-        report_schema = report_params['ReportResultSchema']
-        report_result = report_params['ReportResult']
+        report_schema = datasources["SchemaGDB"] + "/" + report_params['ReportResultSchema']
+        report_result = datasources["ResultsGDB"] + "/" + report_params['ReportResult']
 
         if not os.path.isabs(report_result):
             report_result =os.path.abspath( report_result)
@@ -397,6 +415,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         if not os.path.isabs(report_schema):
             report_schema =os.path.abspath( report_schema)
 
+        report_append_flag = report_params['ReportAppend']
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
 
@@ -419,7 +438,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
             if 'layer' in result:
 
                 report_copy = copy_report_data_schema(reporting_areas=reporting_areas,reporting_areas_ID_field=reporting_areas_ID_field,report_schema=report_schema,
-                                                      report_result=report_result,join_layer=result['layer'])
+                                                      report_result=report_result,join_layer=result['layer'],report_append_flag=report_append_flag)
 
                 report_result = calculate_average_report_results(report_result=report_result,
                                                 reporting_areas_ID_field=reporting_areas_ID_field ,
@@ -427,7 +446,9 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
                                                 field_map=avg_field_map,
                                                 report_date_field=report_date_field,
                                                 report_ID_field=report_ID_field,
-                                                average_field=result['field'])
+                                                average_field=result['field'],
+                                                reportParam=report_params,
+                                                config=datasources)
                 print "            %s was created" % report_result
 
 
@@ -733,6 +754,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
 
         # Process: Add a field and calculate it with the groupings required for reporting.  If CP is set, _CP will be apped to the end of the material type.
+        #print "at AddField_management"
         arcpy.AddField_management(in_table=_intersect, field_name=classified_layer_field_name, field_type="TEXT",field_precision= "", field_scale="", field_length="",
                                   field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
 
@@ -744,7 +766,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         flds.append(classified_layer_field_name)
 
         newRows = []
-
+        #print "at Update Cursor"
         with arcpy.da.UpdateCursor(_intersect, flds) as urows:
             for row in urows:
                 val_fnd = False
@@ -783,6 +805,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                     for newRow in newRows:
                         irows.insertRow(newRow)
                 del irows
+        #print "done update cursors"
         return _intersect
 
     except arcpy.ExecuteError:
@@ -870,7 +893,7 @@ def classified_pivot(classified_layer, classified_layer_field_name, reporting_ar
         gc.collect()
 
 #----------------------------------------------------------------------
-def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_schema ,report_result, join_layer):
+def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_schema ,report_result, join_layer,report_append_flag):
 
     _tempWorkspace = None
     _reportCopy = None
@@ -894,7 +917,10 @@ def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_sch
         if not os.path.isabs(report_schema):
             report_schema =os.path.abspath( report_schema)
 
-        arcpy.Copy_management(report_schema,report_result,"FeatureClass")
+        # New flag for weather or not to append data to exist results or clear it out.
+        if report_append_flag.upper() != "YES":
+            arcpy.Copy_management(report_schema,report_result,"FeatureClass")
+
         return final_report
     except arcpy.ExecuteError:
         line, filename, synerror = Common.trace()
@@ -924,7 +950,7 @@ def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_sch
 
         gc.collect()
 #----------------------------------------------------------------------
-def calculate_average_report_results(report_result, reporting_areas_ID_field,report_copy, field_map  ,report_date_field,report_ID_field,average_field  ):
+def calculate_average_report_results(report_result, reporting_areas_ID_field,report_copy, field_map  ,report_date_field,report_ID_field,average_field,reportParam, config ):
     fields = None
     strOnlineTime = None
     search_fields = None
@@ -958,6 +984,10 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
                     irows.insertRow(tuple(newrow)  )
             del srows
         del irows
+
+        # The current recordset that is completed, send it to a merged feature for CSV export process layer.
+        mergeAllReports(reportLayer=report_result, report=reportParam, config=config)
+
         return report_result
     except arcpy.ExecuteError:
         line, filename, synerror = Common.trace()
@@ -992,7 +1022,7 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
         gc.collect()
 
 #----------------------------------------------------------------------
-def calculate_report_results(report_result, reporting_areas_ID_field,report_copy, reclass_map  ,report_date_field,report_ID_field ,exp ):
+def calculate_report_results(report_result, reporting_areas_ID_field,report_copy, reclass_map  ,report_date_field,report_ID_field ,exp, reportParam, config ):
     appendString = None
     fields = None
     strOnlineTime = None
@@ -1017,9 +1047,15 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
                 for u in range(len(fields) - 1):
                     row[u]= eval(exp.replace('{Value}', str(Common.noneToValue( row[u],0.0))))# {'__builtins__':{}}
 
-                row[len(fields)-1] = strOnlineTime
+                if row[len(fields)-1] == None:
+                    row[len(fields)-1] = strOnlineTime
+
                 urows.updateRow(row)
             del urows
+
+        # The current recordset that is completed, send it to a merged feature for CSV export process layer.
+        mergeAllReports(reportLayer=report_result, report=reportParam, config=config)
+
     except arcpy.ExecuteError:
         line, filename, synerror = Common.trace()
         raise ReportToolsError({
@@ -1051,7 +1087,7 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
         gc.collect()
 
 #----------------------------------------------------------------------
-def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,report_result,reclass_map  ,report_date_field,report_ID_field):
+def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,report_result,reclass_map  ,report_date_field,report_ID_field, reportParam, config):
 
     _tempWorkspace = None
     _reportCopy = None
@@ -1096,6 +1132,9 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
                 row[len(fields)-1] = strOnlineTime
                 urows.updateRow(row)
             del urows
+
+        # The current recordset that is completed, send it to a merged feature for CSV export process layer.
+        mergeAllReports(reportLayer=report_result, report=reportParam, config=config)
 
         deleteFC([_final_report])
     except arcpy.ExecuteError:
@@ -1569,3 +1608,63 @@ def deleteFC(in_datasets):
         except Exception:
             print "Unable to delete %s" % in_data
 
+
+
+#----------------------------------------------------------------------
+# Function to merge run time reports into a temp feature class to export to CSV.
+# This create a new FC with the first report, then just append fields for subsequent reports.
+def mergeAllReports(reportLayer, report, config):
+    fieldList = None
+    fieldNames = None
+    _tempWorkspace = None
+    _mergedFeature = None
+    _mergedFeaturePath = None
+    try:
+
+        if report['ReportMerge'].upper() == "YES":
+            _tempWorkspace = config["ResultsGDB"]
+            _mergedFeature = "CSVTemp"
+            _mergedFeaturePath = os.path.abspath(_tempWorkspace + "/" + _mergedFeature)
+
+            if arcpy.Exists(_mergedFeaturePath)==False:
+                arcpy.CreateFeatureclass_management(_tempWorkspace, _mergedFeature, "POLYGON", reportLayer, "DISABLED", "DISABLED", "", "", "0", "0", "0")
+                arcpy.Append_management(reportLayer,_mergedFeaturePath, "TEST","","")
+                #arcpy.DeleteField_management(_mergedFeaturePath, ["SHAPE_LENGTH", "SHAPE_AREA"])
+            else:
+                fieldNames = []
+                fieldList = arcpy.ListFields(reportLayer)
+                for field in fieldList:
+                    #print field.name
+                    if (field.name.upper() != "SHAPE") & (field.name.upper() != "SHAPE_LENGTH") & (field.name.upper() != "SHAPE_AREA") & (field.name != report["ReportDateField"]) & (field.name != report["ReportIDField"]):
+                        fieldNames.append(field.name)
+
+                fieldNames = ';'.join(fieldNames)
+
+                arcpy.JoinField_management(_mergedFeaturePath, report["ReportIDField"], reportLayer, report["ReportIDField"], fieldNames)
+
+    except arcpy.ExecuteError:
+        line, filename, synerror = Common.trace()
+        raise ReportToolsError({
+                    "function": "JoinAndCalc",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                    "arcpyError": arcpy.GetMessages(2),
+                                    }
+                                    )
+    except:
+        line, filename, synerror = Common.trace()
+        raise ReportToolsError({
+            "function": "calculate_age_field",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+        })
+    finally:
+
+        del _tempWorkspace
+        del _mergedFeature
+        del _mergedFeaturePath
+        del fieldList
+        del fieldNames
+        gc.collect()
