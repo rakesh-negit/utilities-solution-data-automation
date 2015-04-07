@@ -392,7 +392,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                               report_date_field=report_date_field,
                               report_ID_field=report_ID_field,
                               reportParam=report_params,
-                              config=datasources)
+                              config=datasources,report_append_flag=report_append_flag)
             print "%s was created" % report_result
         else:
             #print "at split_reclass"
@@ -1210,7 +1210,7 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
         gc.collect()
 
 #----------------------------------------------------------------------
-def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,report_result,reclass_map  ,report_date_field,report_ID_field, reportParam, config):
+def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,report_result,reclass_map  ,report_date_field,report_ID_field, reportParam, config,report_append_flag):
 
     _tempWorkspace = None
     _reportCopy = None
@@ -1229,15 +1229,37 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
         # Process: Create a copy of the Reporting Areas for the summary info join
         arcpy.FeatureClassToFeatureClass_conversion(reporting_areas, _tempWorkspace, _reportCopy, "", reporting_areas_ID_field + ' "' + reporting_areas_ID_field + '" true true false 50 Text 0 0 ,First,#,' + reporting_areas +',' + reporting_areas_ID_field + ',-1,-1', "")
 
-        # Process: Create a copy of the report layer
-        className = os.path.basename(report_result)
-        layerPath = os.path.dirname(report_result)
-        arcpy.FeatureClassToFeatureClass_conversion(in_features=report_schema, 
-                                                    out_path=layerPath, 
-                                                    out_name=className, 
-                                                    where_clause=None, 
-                                                    field_mapping=None, 
-                                                    config_keyword=None)        
+
+        if report_append_flag.upper() == "YES" or report_append_flag.upper() == "TRUE":
+            if arcpy.Exists(report_result) == False:
+                if arcpy.Exists(report_schema) == False:
+                    raise ReportToolsError({
+                        "function": "copy_report_data_schema",
+                        "line": 990,
+                        "filename":  'reporttools',
+                        "synerror": "%s could not be located" %report_schema
+                    }
+                                           )       
+                className = os.path.basename(report_result)
+                layerPath = os.path.dirname(report_result)
+                arcpy.FeatureClassToFeatureClass_conversion(in_features=report_schema, 
+                                                            out_path=layerPath, 
+                                                            out_name=className, 
+                                                            where_clause=None, 
+                                                            field_mapping=None, 
+                                                            config_keyword=None)
+                #arcpy.Copy_management(report_schema,report_result,"FeatureClass")
+        else:
+            #arcpy.Copy_management(report_schema,report_result,"FeatureClass")
+            className = os.path.basename(report_result)
+            layerPath = os.path.dirname(report_result)
+            arcpy.FeatureClassToFeatureClass_conversion(in_features=report_schema, 
+                                                        out_path=layerPath, 
+                                                        out_name=className, 
+                                                        where_clause=None, 
+                                                        field_mapping=None, 
+                                                        config_keyword=None)
+     
         #arcpy.Copy_management(report_schema,report_result,"FeatureClass")
 
         appendString = report_ID_field + " \"\" true true false 80 string 0 0 ,First,#," + _final_report + "," + reporting_areas_ID_field + ",-1,-1;"
