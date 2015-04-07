@@ -30,7 +30,7 @@ Click [here](https://github.com/Esri/utilities-solution-data-automation/releases
 To install the package, run the setup.py.  This should copy it to your python's site-package folder.
 
 Running Installation Code:
-   c:\src>python.exe setup.py install
+   c:\src>python.exe installReportTools.py install
 
 ## Issues
 
