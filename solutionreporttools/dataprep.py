@@ -16,6 +16,26 @@ import sys
 import common as Common
 import subprocess
 
+class DataPrepError(Exception):
+    """ raised when error occurs in utility module functions """
+    pass
+#----------------------------------------------------------------------
+def trace():
+    """
+        trace finds the line, the filename
+        and error message and returns it
+        to the user
+    """
+    import traceback, inspect
+    tb = sys.exc_info()[2]
+    tbinfo = traceback.format_tb(tb)[0]
+    filename = inspect.getfile(inspect.currentframe())
+    # script name + line number
+    line = tbinfo.split(", ")[1]
+    # Get Python syntax error
+    #
+    synerror = traceback.format_exc().splitlines()[-1]
+    return line, filename, synerror
 class DataPrep:
 
     overWrite = None
@@ -47,46 +67,65 @@ class DataPrep:
             return False
  
     def CopyData(self):
-        print "************ BEGIN copying SDE to Local DB ****************"
-        # Read the config values and store in local variables then start extraction
-        # It all depends on if it can create a GDB, if not, all other processes are bypassed.
-        for database in self.databases:
-            self.overWrite = None
-            self.databases = None
-            self.start_db =  None
-            self.end_db = None
-            self.datasetsToInclude = None       
-            self.standaloneFeatures = None
-            self.postExtractGP = None
-            retVal = True
-            if "GDBPath" in database and "SDEPath" in database:
-                if (database["GDBPath"].lower()).find(".sde") == -1:
-                    self.start_db =  database["SDEPath"]
-                    self.end_db =  database["GDBPath"]
-                    self.overWrite = database["Overwrite"]
-                    if self._CheckCreateGDBProcess():
-                        if "DataSets" in database:
-                            if database["DataSets"]:
-                                self.datasetsToInclude = database["DataSets"]
-                                retVal = self._CopyDatasetsProcess()
-                        if "FeatureClasses" in database:
-                            if database["FeatureClasses"]:
-                                self.standaloneFeatures = database["FeatureClasses"]
-                                retVal = self._CopyDataTypeProcess(type="FeatureClasses") 
-                        if "Tables" in database:
-                            if database["Tables"]:
-                                self.standaloneFeatures = database["Tables"]
-                                retVal = self._CopyDataTypeProcess(type="Tables")  
-                        if "PostProcesses" in database:
-                            if database["PostProcesses"]:
-                                self.postExtractGP = database["PostProcesses"]
-                                retVal = self._executePostProcess() 
-                else:
-                    print "Sorry, can not copy sde to sde at this time" 
-                    retVal = False                   
-        print "************ END copying SDE to Local DB ****************"
-        return retVal
-        
+        try:
+            print "************ BEGIN copying SDE to Local DB ****************"
+            # Read the config values and store in local variables then start extraction
+            # It all depends on if it can create a GDB, if not, all other processes are bypassed.
+            for database in self.databases:
+                self.overWrite = None
+                self.databases = None
+                self.start_db =  None
+                self.end_db = None
+                self.datasetsToInclude = None       
+                self.standaloneFeatures = None
+                self.postExtractGP = None
+                retVal = True
+                if "GDBPath" in database and "SDEPath" in database:
+                    if (database["GDBPath"].lower()).find(".sde") == -1:
+                        self.start_db =  database["SDEPath"]
+                        self.end_db =  database["GDBPath"]
+                        self.overWrite = database["Overwrite"]
+                        if self._CheckCreateGDBProcess():
+                            if "DataSets" in database:
+                                if database["DataSets"]:
+                                    self.datasetsToInclude = database["DataSets"]
+                                    retVal = self._CopyDatasetsProcess()
+                            if "FeatureClasses" in database:
+                                if database["FeatureClasses"]:
+                                    self.standaloneFeatures = database["FeatureClasses"]
+                                    retVal = self._CopyDataTypeProcess(type="FeatureClasses") 
+                            if "Tables" in database:
+                                if database["Tables"]:
+                                    self.standaloneFeatures = database["Tables"]
+                                    retVal = self._CopyDataTypeProcess(type="Tables")  
+                            if "PostProcesses" in database:
+                                if database["PostProcesses"]:
+                                    self.postExtractGP = database["PostProcesses"]
+                                    retVal = self._executePostProcess() 
+                    else:
+                        print "Sorry, can not copy sde to sde at this time" 
+                        retVal = False                   
+            print "************ END copying SDE to Local DB ****************"
+            return retVal
+        except arcpy.ExecuteError:
+            line, filename, synerror = trace()
+            raise DataPrepError({
+                "function": "CopyData",
+                "line": line,
+                "filename":  filename,
+                "synerror": synerror,
+                "arcpyError": arcpy.GetMessages(2),
+            }
+                                   )
+        except:
+            line, filename, synerror = trace()
+            raise DataPrepError({
+                "function": "CopyData",
+                "line": line,
+                "filename":  filename,
+                "synerror": synerror,
+            }
+            )        
     def _CopyDatasetsProcess(self): 
         try: 
             if self.datasetsToInclude: 
@@ -99,45 +138,70 @@ class DataPrep:
                 if self._CheckCreateGDBProcess():
                 
                     for dataset in datasetList:
-                        name = arcpy.Describe(dataset)
-                        new_data=name.name.split('.')[-1]
-                        
-                        # if user specified *, then user wants all datasets and child objects copied
-                        if "*" in self.datasetsToInclude and len(self.datasetsToInclude) == 1:
-                            #print "Reading: {0}".format(dataset)
-                            if arcpy.Exists(wk2 + os.sep + new_data)==False:      
-                                arcpy.Copy_management(dataset, wk2 + os.sep + new_data)
-                                print "Created Dataset {0} and all childs in local gdb".format(new_data)
-                        else:
-                        # If a list of dataset names is stated, check to see if it iterating dataset is in that list
-                            for checkDS in self.datasetsToInclude:                               
-                                if new_data == checkDS["Name"]:
-                                    print "Reading: {0}".format(dataset)
-                                    if arcpy.Exists(wk2 + os.sep + new_data)==False:
-                                        
-                                        if "*" in checkDS["FeatureClasses"] and len(checkDS["FeatureClasses"]) == 1:
-                                            arcpy.Copy_management(dataset, wk2 + os.sep + new_data)
-                                            print "Created Dataset {0} and all childs in local gdb".format(new_data)                                           
-                                        else:
-                                            #Create the dataset envelope. Creating and not copying because user might not want all
-                                            #features copied into this dataset
-                                            arcpy.CreateFeatureDataset_management(self.end_db, new_data, dataset)
-                                            print "Created Dataset {0} in local gdb".format(new_data)
+                        if arcpy.Exists(dataset = dataset):
+                            
+                            name = arcpy.Describe(dataset)
+                            new_data=name.name.split('.')[-1]
+                            
+                            # if user specified *, then user wants all datasets and child objects copied
+                            if "*" in self.datasetsToInclude and len(self.datasetsToInclude) == 1:
+                                #print "Reading: {0}".format(dataset)
+                                if arcpy.Exists(wk2 + os.sep + new_data)==False:      
+                                    arcpy.Copy_management(dataset, wk2 + os.sep + new_data)
+                                    print "Created Dataset {0} and all childs in local gdb".format(new_data)
+                            else:
+                            # If a list of dataset names is stated, check to see if it iterating dataset is in that list
+                                for checkDS in self.datasetsToInclude:                               
+                                    if new_data == checkDS["Name"]:
+                                        print "Reading: {0}".format(dataset)
+                                        if arcpy.Exists(wk2 + os.sep + new_data)==False:
                                             
-                                            #Handles child features of the datset.  Can either copy all or user defined features
+                                            if "*" in checkDS["FeatureClasses"] and len(checkDS["FeatureClasses"]) == 1:
+                                                arcpy.Copy_management(dataset, wk2 + os.sep + new_data)
+                                                print "Created Dataset {0} and all childs in local gdb".format(new_data)                                           
+                                            else:
+                                                #Create the dataset envelope. Creating and not copying because user might not want all
+                                                #features copied into this dataset
+                                                arcpy.CreateFeatureDataset_management(self.end_db, new_data, dataset)
+                                                print "Created Dataset {0} in local gdb".format(new_data)
+                                                
+                                                #Handles child features of the datset.  Can either copy all or user defined features
+                                                if name.children:
+                                                    self._CheckChildFeatures(ds=name.name,childList=name.children,checkList=checkDS["FeatureClasses"])
+                                        else:                            
+                                            #Handles child features of the datset if dataset already exist.  Only copy new ones
                                             if name.children:
-                                                self._CheckChildFeatures(ds=name.name,childList=name.children,checkList=checkDS["FeatureClasses"])
-                                    else:                            
-                                        #Handles child features of the datset if dataset already exist.  Only copy new ones
-                                        if name.children:
-                                            self._CheckChildFeatures(ds=name.name,childList=name.children,checkList=checkDS["FeatureClasses"])                            
-                                        print "Dataset {0} already exists in the end_db checking for childs".format(new_data)                  
+                                                self._CheckChildFeatures(ds=name.name,childList=name.children,checkList=checkDS["FeatureClasses"])                            
+                                            print "Dataset {0} already exists in the end_db checking for childs".format(new_data) 
+                        else:
+                            raise DataPrepError({
+                                "function": "_CopyDatasetsProcess",
+                                "line": 125,
+                                "filename":  'dataprep',
+                                "synerror": "%s does not exist" % dataset
+                            }   )                                     
                     #Clear memory
                     del dataset
             return True
+        except arcpy.ExecuteError:
+            line, filename, synerror = trace()
+            raise DataPrepError({
+                "function": "_CopyDatasetsProcess",
+                "line": line,
+                "filename":  filename,
+                "synerror": synerror,
+                "arcpyError": arcpy.GetMessages(2),
+            }
+                            )
         except:
-            print "Unexpected error copying feature datasets:", sys.exc_info()[0]
-            return False
+            line, filename, synerror = trace()
+            raise DataPrepError({
+                "function": "_CopyDatasetsProcess",
+                "line": line,
+                "filename":  filename,
+                "synerror": synerror,
+            }
+                                )     
     
     def _CopyDataTypeProcess(self,type="FeatureClasses",ds="",fc=""):
         try:   
