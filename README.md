@@ -3,6 +3,8 @@ Collection of ArcGIS for Utilities and ArcGIS for Telecommunication solutions
 
 Collection of Python tools to quickly create reports about your organization's assets and service area. The prior version of these tools with the ArcRest Helper routine have been merged with [ArcRest](https://github.com/Esri/ArcREST).
 
+Click [here](https://github.com/Esri/utilities-solution-data-automation/releases/tag/12_18_14_Release) for the last release of the helper tools in this repo
+
 [View a completed report](http://www.arcgis.com/home/webmap/viewer.html?webmap=f2cf26f0a3bf48a58c7bd9f80294d471)
 
 ## Features
