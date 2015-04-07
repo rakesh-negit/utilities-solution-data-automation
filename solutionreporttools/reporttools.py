@@ -8,10 +8,27 @@ import gc
 import time
 # New CSV exporter class
 import csvexport as CSVExport
-
+import sys
 from dateutil.parser import parse
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
+#----------------------------------------------------------------------
+def trace():
+    """
+        trace finds the line, the filename
+        and error message and returns it
+        to the user
+    """
+    import traceback, inspect
+    tb = sys.exc_info()[2]
+    tbinfo = traceback.format_tb(tb)[0]
+    filename = inspect.getfile(inspect.currentframe())
+    # script name + line number
+    line = tbinfo.split(", ")[1]
+    # Get Python syntax error
+    #
+    synerror = traceback.format_exc().splitlines()[-1]
+    return line, filename, synerror
 
 class ReportToolsError(Exception):
     """ raised when error occurs in utility module functions """
@@ -27,21 +44,21 @@ def create_report_layers_using_config(config):
     try:
 
         #To handle CSV export, a temp FC is created.  This code just checks and deletes it, if it exist.
-        _TempFC = os.path.abspath(config["ResultsGDB"] + "/" + "CSVTemp")
+        _TempFC = os.path.join(config["ResultsGDB"] ,"CSVTemp")
         deleteFC([_TempFC])
-
         reports =  config['Reports']
 
         report_msg = []
         for i in reports:
-            if i['RunReport'].upper() == "YES":
+            if not('RunReport' in i):
+                i['RunReport'] = 'yes'
+            if 'RunReport' in i and (i['RunReport'].upper() == "YES" or i['RunReport'].upper() =="TRUE"):
                 if i['Type'].upper()== "JOINCALCANDLOAD":
                     create_calcload_report(report_params=i,datasources=config)
                 elif i['Type'].upper()== "RECLASS":
                     reporting_areas = config['ReportingAreas']
-                    if not os.path.isabs(reporting_areas):
-                        reporting_areas = os.path.abspath(reporting_areas)
-
+                    #if not os.path.isabs(reporting_areas):
+                        #reporting_areas = os.path.abspath(reporting_areas)
 
                     reporting_areas_ID_field = config['ReportingAreasIDField']
 
@@ -73,7 +90,7 @@ def create_report_layers_using_config(config):
 
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "create_report_layers_using_config",
                     "line": line,
@@ -83,7 +100,7 @@ def create_report_layers_using_config(config):
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "create_report_layers_using_config",
                     "line": line,
@@ -167,7 +184,7 @@ def create_calcload_report(report_params):
 
         if inputCnt == 0:
 
-            print "            %s was created" % report_result
+            print "%s was created" % report_result
         else:
 
             _procData = calculate_load_results(feature_data = joinInfo['FeatureData'],
@@ -185,10 +202,10 @@ def create_calcload_report(report_params):
             if arcpy.Exists(_tempTableFull):
                 deleteFC([_tempTableFull])
 
-            print "            %s was created" % report_result
+            print "%s was created" % report_result
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "create_calcload_report",
                     "line": line,
@@ -198,7 +215,7 @@ def create_calcload_report(report_params):
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "create_calcload_report",
                     "line": line,
@@ -263,6 +280,15 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         filt_layer = "filter_layer"
 
         #reporting_layer = report_params['Data']
+        if not report_params['Data'] in datasources["Data"]:
+            print "ERROR: missing %s in the data section of the config" % report_params['Data']
+            raise ReportToolsError({
+                "function": "create_reclass_report",
+                "line": 285,
+                "filename":  "reportTools",
+                "synerror": 'A report has an invalid data section'
+                }
+                 )
         reporting_layer = datasources["Data"][report_params['Data']]
         field_map = report_params['FieldMap']
         sql = report_params['FilterSQL']
@@ -271,16 +297,18 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         count_field = report_params['CountField']
         reclass_map = report_params['ReclassMap']
 
-        report_schema = datasources["SchemaGDB"] + "/" + report_params['ReportResultSchema']
-        report_result = datasources["ResultsGDB"] + "/" + report_params['ReportResult']
+        report_schema = os.path.join(datasources["SchemaGDB"], report_params['ReportResultSchema'])
+        report_result = os.path.join(datasources["ResultsGDB"], report_params['ReportResult'])
+ 
+        #if not os.path.isabs(report_result):
+            #report_result =os.path.abspath( report_result)
 
-        if not os.path.isabs(report_result):
-            report_result =os.path.abspath( report_result)
-
-        if not os.path.isabs(report_schema):
-            report_schema =os.path.abspath( report_schema)
-
-        report_append_flag = report_params['ReportAppend']
+        #if not os.path.isabs(report_schema):
+            #report_schema =os.path.abspath( report_schema)
+        if 'ReportAppend' in report_params:
+            report_append_flag = report_params['ReportAppend']
+        else:
+            report_append_flag = 'false'
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
         result_exp = report_params['FinalResultExpression']
@@ -305,7 +333,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                               report_ID_field=report_ID_field,
                               reportParam=report_params,
                               config=datasources)
-            print "            %s was created" % report_result
+            print "%s was created" % report_result
         else:
             #print "at split_reclass"
             classified_layer = split_reclass(reporting_areas=reporting_areas, reporting_areas_ID_field=reporting_areas_ID_field,reporting_layer=filt_layer,field_map=field_map,
@@ -323,10 +351,10 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
             #print "at deleteFC"
             deleteFC([classified_layer,pivot_layer,report_copy])
 
-            print "            %s was created" % report_result
+            print "%s was created" % report_result
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "create_reclass_report",
                     "line": line,
@@ -336,7 +364,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "create_reclass_report",
                     "line": line,
@@ -415,7 +443,10 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         if not os.path.isabs(report_schema):
             report_schema =os.path.abspath( report_schema)
 
-        report_append_flag = report_params['ReportAppend']
+        if 'ReportAppend' in report_params:
+            report_append_flag = report_params['ReportAppend']
+        else:
+            report_append_flag = 'false'
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
 
@@ -449,12 +480,12 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
                                                 average_field=result['field'],
                                                 reportParam=report_params,
                                                 config=datasources)
-                print "            %s was created" % report_result
+                print "%s was created" % report_result
 
 
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "create_average_report",
                     "line": line,
@@ -464,7 +495,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "create_average_report",
                     "line": line,
@@ -622,7 +653,7 @@ def calculate_load_results(feature_data,
             del icursor
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "calculate_load_results",
                     "line": line,
@@ -632,7 +663,7 @@ def calculate_load_results(feature_data,
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "calculate_load_results",
                     "line": line,
@@ -707,7 +738,7 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         return {"layer":sumstats,"field":"MEAN_"+age_field}
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "split_average",
                     "line": line,
@@ -717,7 +748,7 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "split_average",
                     "line": line,
@@ -789,9 +820,9 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                                     row[len(flds) - 1] = field['FieldName']
                                     val_fnd = True
                             except Exception, e:
-                                print "       %s" % e
+                                print "%s" % e
                     except Exception, e:
-                        print "       WARNING: %s is not valid" % str(sql_state)
+                        print "WARNING: %s is not valid" % str(sql_state)
 
                 if val_fnd == False:
 
@@ -809,7 +840,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         return _intersect
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "split_reclass",
                     "line": line,
@@ -819,7 +850,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "split_reclass",
                     "line": line,
@@ -865,7 +896,7 @@ def classified_pivot(classified_layer, classified_layer_field_name, reporting_ar
         deleteFC([_freq])
         return _pivot
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "JoinAndCalc",
                     "line": line,
@@ -875,7 +906,7 @@ def classified_pivot(classified_layer, classified_layer_field_name, reporting_ar
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "JoinAndCalc",
                     "line": line,
@@ -911,19 +942,22 @@ def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_sch
         arcpy.JoinField_management(final_report, reporting_areas_ID_field, join_layer, reporting_areas_ID_field, "#")
 
         # Process: Create a copy of the report layer
-        if not os.path.isabs(report_result):
-            report_result =os.path.abspath( report_result)
+        #if not os.path.isabs(report_result):
+            #report_result =os.path.abspath( report_result)
 
-        if not os.path.isabs(report_schema):
-            report_schema =os.path.abspath( report_schema)
+        #if not os.path.isabs(report_schema):
+            #report_schema =os.path.abspath( report_schema)
 
         # New flag for weather or not to append data to exist results or clear it out.
-        if report_append_flag.upper() != "YES":
+        if report_append_flag.upper() == "YES" or report_append_flag.upper() == "TRUE":
+            if arcpy.Exists(report_result) == False:
+                arcpy.Copy_management(report_schema,report_result,"FeatureClass")
+        else:
             arcpy.Copy_management(report_schema,report_result,"FeatureClass")
 
         return final_report
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "classified_pivot",
                     "line": line,
@@ -933,7 +967,7 @@ def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_sch
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "classified_pivot",
                     "line": line,
@@ -990,7 +1024,7 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
 
         return report_result
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "calculate_average_report_results",
                     "line": line,
@@ -1000,7 +1034,7 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "calculate_average_report_results",
                     "line": line,
@@ -1057,7 +1091,7 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
         mergeAllReports(reportLayer=report_result, report=reportParam, config=config)
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "calculate_report_results",
                     "line": line,
@@ -1067,7 +1101,7 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "calculate_report_results",
                     "line": line,
@@ -1138,7 +1172,7 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
 
         deleteFC([_final_report])
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "copy_empty_report",
                     "line": line,
@@ -1148,7 +1182,7 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "copy_empty_report",
                     "line": line,
@@ -1230,7 +1264,7 @@ def shapeBasedSpatialJoin(TargetLayer, JoinLayer,JoinResult):
 
         return JoinResult
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "shapeBasedSpatialJoin",
                     "line": line,
@@ -1240,7 +1274,7 @@ def shapeBasedSpatialJoin(TargetLayer, JoinLayer,JoinResult):
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "shapeBasedSpatialJoin",
                     "line": line,
@@ -1304,7 +1338,7 @@ def JoinAndCalc(inputDataset, inputJoinField, joinTable, joinTableJoinField,copy
 
         arcpy.RemoveJoin_management(inputLayer,joinName)
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "JoinAndCalc",
                     "line": line,
@@ -1314,7 +1348,7 @@ def JoinAndCalc(inputDataset, inputJoinField, joinTable, joinTableJoinField,copy
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "JoinAndCalc",
                     "line": line,
@@ -1357,7 +1391,7 @@ def fieldsToFieldArray(featureclass):
 
         return returnFields
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
             "function": "fieldsToFieldArray",
             "line": line,
@@ -1399,7 +1433,7 @@ def FieldExist(featureclass, fieldNames):
             return False
 
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
             "function": "FieldExist",
             "line": line,
@@ -1448,7 +1482,7 @@ def calc_field(inputDataset,field_map,code_exp,result_field):
             del row
             del cursor
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "JoinAndCalc",
                     "line": line,
@@ -1458,7 +1492,7 @@ def calc_field(inputDataset,field_map,code_exp,result_field):
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
             "function": "calc_field",
             "line": line,
@@ -1495,7 +1529,7 @@ def calculate_age_field(inputDataset,field,result_field):
             del row
         del cursor
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "JoinAndCalc",
                     "line": line,
@@ -1505,7 +1539,7 @@ def calculate_age_field(inputDataset,field,result_field):
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
             "function": "calculate_age_field",
             "line": line,
@@ -1572,7 +1606,7 @@ def calculate_inline_stats(inputDataset,fields,result_field,stats_method):
             del cursor
 
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
             "function": "calculate_inline_stats",
             "line": line,
@@ -1620,8 +1654,9 @@ def mergeAllReports(reportLayer, report, config):
     _mergedFeature = None
     _mergedFeaturePath = None
     try:
-
-        if report['ReportMerge'].upper() == "YES":
+        if not 'ReportMerge' in report:
+            report['ReportMerge'] = 'TRUE'
+        if report['ReportMerge'].upper() == "YES" or report['ReportMerge'].upper() == "TRUE":
             _tempWorkspace = config["ResultsGDB"]
             _mergedFeature = "CSVTemp"
             _mergedFeaturePath = os.path.abspath(_tempWorkspace + "/" + _mergedFeature)
@@ -1643,7 +1678,7 @@ def mergeAllReports(reportLayer, report, config):
                 arcpy.JoinField_management(_mergedFeaturePath, report["ReportIDField"], reportLayer, report["ReportIDField"], fieldNames)
 
     except arcpy.ExecuteError:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "JoinAndCalc",
                     "line": line,
@@ -1653,7 +1688,7 @@ def mergeAllReports(reportLayer, report, config):
                                     }
                                     )
     except:
-        line, filename, synerror = Common.trace()
+        line, filename, synerror = trace()
         raise ReportToolsError({
             "function": "calculate_age_field",
             "line": line,

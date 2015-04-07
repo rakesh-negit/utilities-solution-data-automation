@@ -13,7 +13,7 @@
 import arcpy
 import os
 import sys
-import Common
+import common as Common
 import subprocess
 
 class DataPrep:
