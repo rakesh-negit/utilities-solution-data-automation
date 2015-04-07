@@ -67,8 +67,8 @@ def create_report_layers_using_config(config):
                                          report_params=i,datasources=config))
                 elif i['Type'].upper()== "AVERAGE":
                     reporting_areas = config['ReportingAreas']
-                    if not os.path.isabs(reporting_areas):
-                        reporting_areas =os.path.abspath(reporting_areas)
+                    #if not os.path.isabs(reporting_areas):
+                        #reporting_areas =os.path.abspath(reporting_areas)
 
                     reporting_areas_ID_field = config['ReportingAreasIDField']
 
@@ -437,11 +437,11 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         report_schema = datasources["SchemaGDB"] + "/" + report_params['ReportResultSchema']
         report_result = datasources["ResultsGDB"] + "/" + report_params['ReportResult']
 
-        if not os.path.isabs(report_result):
-            report_result =os.path.abspath( report_result)
+        #if not os.path.isabs(report_result):
+            #report_result =os.path.abspath( report_result)
 
-        if not os.path.isabs(report_schema):
-            report_schema =os.path.abspath( report_schema)
+        #if not os.path.isabs(report_schema):
+            #report_schema =os.path.abspath( report_schema)
 
         if 'ReportAppend' in report_params:
             report_append_flag = report_params['ReportAppend']
