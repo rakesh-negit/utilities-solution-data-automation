@@ -98,13 +98,13 @@ class DataPrep:
                                 if database["Tables"]:
                                     self.standaloneFeatures = database["Tables"]
                                     retVal = self._CopyDataTypeProcess(type="Tables")  
-                            if "PostProcesses" in database:
-                                if database["PostProcesses"]:
-                                    self.postExtractGP = database["PostProcesses"]
-                                    retVal = self._executePostProcess() 
                     else:
                         print "Sorry, can not copy sde to sde at this time" 
-                        retVal = False                   
+                        retVal = False  
+                if "PostProcesses" in database:
+                    if database["PostProcesses"]:
+                        self.postExtractGP = database["PostProcesses"]
+                        retVal = self._executePostProcess()                                          
             print "************ END copying SDE to Local DB ****************"
             return retVal
         except arcpy.ExecuteError:
@@ -115,8 +115,7 @@ class DataPrep:
                 "filename":  filename,
                 "synerror": synerror,
                 "arcpyError": arcpy.GetMessages(2),
-            }
-                                   )
+            })
         except:
             line, filename, synerror = trace()
             raise DataPrepError({
@@ -124,8 +123,7 @@ class DataPrep:
                 "line": line,
                 "filename":  filename,
                 "synerror": synerror,
-            }
-            )        
+            })        
     def _CopyDatasetsProcess(self): 
         try: 
             if self.datasetsToInclude: 
@@ -311,11 +309,41 @@ class DataPrep:
             return False
         
     def _executePostProcess(self):
-        try:  
-            print "Running post process GP (not yet implemented)"
-            #for postGP in self.postExtractGP:
-                #subprocess.call([sys.executable, os.path.join(get_script_dir(), 'test.py')])
+        try:
+            print "Running post process GP"
+            for process in self.postExtractGP:
+                if process["ToolType"].upper() == "MODEL":
+                    arcpy.ImportToolbox(process["ToolPath"])
+                    for tool in process["Tools"]:
+                        if tool in arcpy.ListTools():
+                            customCode = "arcpy." + tool + "()"
+                            eval(customCode)
+                            print "Finished executing model {0}".format(tool)
+                elif process["ToolType"].upper() == "SCRIPT":
+                    for tool in process["Tools"]:
+                        scriptPath = process["ToolPath"] + "/" + tool
+                        subprocess.call([sys.executable, os.path.join(scriptPath)])
+                        print "Finished executing script {0}".format(tool)
+                else:
+                    print "Sorry, not a valid tool"
+            return True
+        except arcpy.ExecuteError:
+            line, filename, synerror = trace()
+            raise DataPrepError({
+                "function": "CopyData",
+                "line": line,
+                "filename":  filename,
+                "synerror": synerror,
+                "arcpyError": arcpy.GetMessages(2),
+            })
         except:
-            print "Unexpected error executing GP tool:", sys.exc_info()[0]
-            return False                  
+            line, filename, synerror = trace()
+            raise DataPrepError({
+                "function": "CopyData",
+                "line": line,
+                "filename":  filename,
+                "synerror": synerror,
+            })
+            
+                         
     
