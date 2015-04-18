@@ -10,6 +10,7 @@ import time
 import csvexport as CSVExport
 import sys
 from dateutil.parser import parse
+from solutionreporttools import dataprep as DataPrep
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
 #----------------------------------------------------------------------
@@ -33,6 +34,42 @@ def trace():
 class ReportToolsError(Exception):
     """ raised when error occurs in utility module functions """
     pass
+def exportDataForReport(reportConfig):
+    if('TempExportLocation' in reportConfig):
+        if (reportConfig["TempExportLocation"] != ""):
+            startTime = datetime.datetime.now()                                                    
+            print "Data Export Prep Script starting at: %s" % str(startTime.strftime(dateTimeFormat))
+    
+            prepDataDict = {}                                                                                
+            prepDataDict["Overwrite"] = "YES"
+            prepDataDict["SDEPath"] = ""
+            prepDataDict["GDBPath"] = reportConfig["TempExportLocation"]
+            prepDataDict["FeatureClasses"] = [reportConfig["ReportingAreas"]]
+    
+            if reportConfig["ReportingAreas"].upper().find(".SDE") != -1:
+                reportConfig["ReportingAreas"] = reportConfig["TempExportLocation"] + "/" + reportConfig["ReportingAreas"].split('.')[-1]
+            else:
+                reportConfig["ReportingAreas"] = reportConfig["TempExportLocation"] + "/" + reportConfig["ReportingAreas"].split('/')[-1]                                 
+            for key, value in reportConfig["Data"].iteritems():
+                prepDataDict["FeatureClasses"].append(value)
+                if value.upper().find(".SDE") != -1:
+                    reportConfig["Data"][key] = reportConfig["TempExportLocation"] + "/" + value.split('.')[-1]
+                else:
+                    reportConfig["Data"][key] = reportConfig["TempExportLocation"] + "/" + value.split('/')[-1] 
+    
+            finalDict = {"Databases":[prepDataDict]}
+            prepData = DataPrep.DataPrep(configFilePath=finalDict)                        
+            prepData.CopyData()
+            print "Data Export Prep Script complete, time to complete: %s" % str(datetime.datetime.now() - startTime)
+            return reportConfig
+        else:
+            print "%s is invalid" % reportConfig['TempExportLocation']
+            return reportConfig
+        
+    else:
+        print "%s is missing from config" % 'TempExportLocation'
+        return reportConfig
+    
 #----------------------------------------------------------------------
 def create_report_layers_using_config(config):
 
