@@ -386,7 +386,11 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                 }
                  )
         reporting_layer = datasources["Data"][report_params['Data']]
-        field_map = report_params['FieldMap']
+        if 'FieldMap' in report_params:
+            field_map = report_params['FieldMap']
+        else:
+            field_map = []
+            
         sql = report_params['FilterSQL']
 
 
@@ -411,6 +415,11 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         report_ID_field = report_params['ReportIDField']
         result_exp = report_params['FinalResultExpression']
 
+        if 'UseArcMapExpression' in report_params:
+            useArcMapExpression = report_params['UseArcMapExpression']
+        else:
+            useArcMapExpression = False
+    
         #if type(value_field) is tuple:
         #    average_value = value_field[1]
         #    value_field = value_field[0]
@@ -435,7 +444,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         else:
             #print "at split_reclass"
             classified_layer = split_reclass(reporting_areas=reporting_areas, reporting_areas_ID_field=reporting_areas_ID_field,reporting_layer=filt_layer,field_map=field_map,
-                                             reclass_map=reclass_map,classified_layer_field_name = classified_layer_field_name,count_field_name=count_field)
+                                             reclass_map=reclass_map,classified_layer_field_name = classified_layer_field_name,count_field_name=count_field,use_arcmap_expression=useArcMapExpression)
                 
             #print "at classified_pivot"
             pivot_layer = classified_pivot(classified_layer=classified_layer, classified_layer_field_name=classified_layer_field_name,
@@ -868,7 +877,7 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         gc.collect()
 
 #----------------------------------------------------------------------
-def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name, count_field_name):
+def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name, count_field_name,use_arcmap_expression=False):
 
     _tempWorkspace = None
     _intersect = None
@@ -904,7 +913,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         reclassFlds.append("SHAPE@")
         reclassFlds.append(classified_layer_field_name)
         flds = []
-        
+    
         for fld in field_map:
             flds.append(fld['FieldName'])
         flds.append(reporting_areas_ID_field)
@@ -912,43 +921,71 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
 
         countFieldAdded = False
         countField = arcpy.ListFields(reporting_layer,count_field_name)  
-        
+
         if len(countField)>0:  
             arcpy.AddField_management(in_table=reclassLayer, field_name=countField[0].name, field_type=countField[0].type,
-                                        field_precision= countField[0].precision, field_scale=countField[0].scale, 
-                                        field_length=countField[0].length,
-                                        field_alias=countField[0].aliasName,field_is_nullable=countField[0].isNullable,
-                                        field_is_required=countField[0].required, field_domain="")
+                                      field_precision= countField[0].precision, field_scale=countField[0].scale, 
+                                      field_length=countField[0].length,
+                                      field_alias=countField[0].aliasName,field_is_nullable=countField[0].isNullable,
+                                      field_is_required=countField[0].required, field_domain="")
             countFieldAdded = True
             reclassFlds.append(countField[0].name)
-            flds.append(countField[0].name)        
+            flds.append(countField[0].name)                
 
-        with arcpy.da.InsertCursor(reclassLayer, reclassFlds) as irows:
-            with arcpy.da.SearchCursor(_intersect, flds) as srows:
-                for row in srows:
+        selectLayer = "selectLayer"
+        if use_arcmap_expression:
+            for field in reclass_map:
+                sql_state = field['Expression']            
+                arcpy.MakeFeatureLayer_management(in_features=_intersect, 
+                                             out_layer=selectLayer, 
+                                             where_clause=sql_state, 
+                                             workspace=None, 
+                                             field_info=None)
+                reccount = arcpy.GetCount_management(selectLayer)
+                print "%s records found to match %s" % (field["FieldName"],str(reccount))
+                if reccount > 0 :
                    
-                    for field in reclass_map:
-                        sql_state = field['Expression']
-                        try:
-    
-    
-                            for i in range (len(field_map)):
-                                sql_state = sql_state.replace(field_map[i]['Expression'],str(row[i]))
-    
-                            if eval(sql_state) == True:
+                    with arcpy.da.InsertCursor(reclassLayer, reclassFlds) as irows:
+                        with arcpy.da.SearchCursor(selectLayer, flds) as srows:
+                            for row in srows:                
                                 if countFieldAdded:
                                     irows.insertRow((row[len(flds) - 3],row[len(flds) - 2],field["FieldName"],row[len(flds) - 1]))
                                 else:
                                     irows.insertRow((row[len(flds) - 2],row[len(flds) - 1],field["FieldName"]))
-                                 
-                               
-                        except Exception, e:
-                            print "WARNING: %s is not valid" % str(sql_state)
-
-                del row            
-            del srows
-                
-        del irows
+    
+                                del row            
+                        del srows
+                                
+                    del irows                            
+        else:
+           
+    
+            with arcpy.da.InsertCursor(reclassLayer, reclassFlds) as irows:
+                with arcpy.da.SearchCursor(_intersect, flds) as srows:
+                    for row in srows:
+                       
+                        for field in reclass_map:
+                            sql_state = field['Expression']
+                            try:
+        
+        
+                                for i in range (len(field_map)):
+                                    sql_state = sql_state.replace(field_map[i]['Expression'],str(row[i]))
+        
+                                if eval(sql_state) == True:
+                                    if countFieldAdded:
+                                        irows.insertRow((row[len(flds) - 3],row[len(flds) - 2],field["FieldName"],row[len(flds) - 1]))
+                                    else:
+                                        irows.insertRow((row[len(flds) - 2],row[len(flds) - 1],field["FieldName"]))
+                                     
+                                   
+                            except Exception, e:
+                                print "WARNING: %s is not valid" % str(sql_state)
+    
+                    del row            
+                del srows
+                    
+            del irows
         #print "done update cursors"
         arcpy.Delete_management(in_data=_intersect)
         return reclassLayer
