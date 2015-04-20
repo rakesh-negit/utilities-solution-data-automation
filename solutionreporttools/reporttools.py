@@ -184,8 +184,9 @@ def create_report_layers_using_config(config):
                     "filename":  filename,
                     "synerror": synerror,
                     "arcpyError": arcpy.GetMessages(2),
-                                    }
-                                    )
+                                    })
+    except (ReportToolsError),e:
+        raise e
     except:
         line, filename, synerror = trace()
         raise ReportToolsError({
@@ -434,9 +435,10 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         else:
             #print "at split_reclass"
             classified_layer = split_reclass(reporting_areas=reporting_areas, reporting_areas_ID_field=reporting_areas_ID_field,reporting_layer=filt_layer,field_map=field_map,
-                                             reclass_map=reclass_map,classified_layer_field_name = classified_layer_field_name)
+                                             reclass_map=reclass_map,classified_layer_field_name = classified_layer_field_name,count_field_name=count_field)
+                
             #print "at classified_pivot"
-            pivot_layer = classified_pivot(classified_layer =classified_layer, classified_layer_field_name= classified_layer_field_name,
+            pivot_layer = classified_pivot(classified_layer=classified_layer, classified_layer_field_name=classified_layer_field_name,
                                            reporting_areas_ID_field=reporting_areas_ID_field,count_field=count_field)
             #print "at copy_report_data_schema"
             report_copy = copy_report_data_schema(reporting_areas=reporting_areas,reporting_areas_ID_field=reporting_areas_ID_field,report_schema=report_schema,
@@ -458,8 +460,9 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                     "filename":  filename,
                     "synerror": synerror,
                     "arcpyError": arcpy.GetMessages(2),
-                                    }
-                                    )
+                                    })
+    except (ReportToolsError),e:
+        raise e                                  
     except:
         line, filename, synerror = trace()
         raise ReportToolsError({
@@ -865,7 +868,125 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         gc.collect()
 
 #----------------------------------------------------------------------
-def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name):
+def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name, count_field_name):
+
+    _tempWorkspace = None
+    _intersect = None
+    flds = None
+    val_fnd = None
+    sql_state = None
+   
+
+    try:
+        _tempWorkspace = env.scratchGDB
+
+        _intersect = os.path.join(_tempWorkspace, Common.random_string_generator())
+        _unique_name = Common.random_string_generator()
+        
+        reclassLayer = os.path.join(_tempWorkspace, _unique_name)
+        
+        # Process: Intersect Reporting Areas with Reporting Data to split them for accurate measurements
+        arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
+
+        # Process: Add a field and calculate it with the groupings required for reporting. .
+        # Process: Create Reclass Feature Class
+        desc = arcpy.Describe(_intersect)
+       
+        arcpy.CreateFeatureclass_management(_tempWorkspace, _unique_name, str(desc.shapeType).upper(), "", "DISABLED", "DISABLED", _intersect, "", "0", "0", "0")
+        
+        arcpy.AddField_management(in_table=reclassLayer, field_name=classified_layer_field_name, field_type="TEXT",field_precision= "", field_scale="", field_length="",
+                                  field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
+        arcpy.AddField_management(in_table=reclassLayer, field_name=reporting_areas_ID_field, field_type="TEXT",field_precision= "", field_scale="", field_length="",
+                             field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
+        
+        reclassFlds = []
+        reclassFlds.append(reporting_areas_ID_field)
+        reclassFlds.append("SHAPE@")
+        reclassFlds.append(classified_layer_field_name)
+        flds = []
+        
+        for fld in field_map:
+            flds.append(fld['FieldName'])
+        flds.append(reporting_areas_ID_field)
+        flds.append("SHAPE@")        
+
+        countFieldAdded = False
+        countField = arcpy.ListFields(reporting_layer,count_field_name)  
+        
+        if len(countField)>0:  
+            arcpy.AddField_management(in_table=reclassLayer, field_name=countField[0].name, field_type=countField[0].type,
+                                        field_precision= countField[0].precision, field_scale=countField[0].scale, 
+                                        field_length=countField[0].length,
+                                        field_alias=countField[0].aliasName,field_is_nullable=countField[0].isNullable,
+                                        field_is_required=countField[0].required, field_domain="")
+            countFieldAdded = True
+            reclassFlds.append(countField[0].name)
+            flds.append(countField[0].name)        
+
+        with arcpy.da.InsertCursor(reclassLayer, reclassFlds) as irows:
+            with arcpy.da.SearchCursor(_intersect, flds) as srows:
+                for row in srows:
+                   
+                    for field in reclass_map:
+                        sql_state = field['Expression']
+                        try:
+    
+    
+                            for i in range (len(field_map)):
+                                sql_state = sql_state.replace(field_map[i]['Expression'],str(row[i]))
+    
+                            if eval(sql_state) == True:
+                                if countFieldAdded:
+                                    irows.insertRow((row[len(flds) - 3],row[len(flds) - 2],field["FieldName"],row[len(flds) - 1]))
+                                else:
+                                    irows.insertRow((row[len(flds) - 2],row[len(flds) - 1],field["FieldName"]))
+                                 
+                               
+                        except Exception, e:
+                            print "WARNING: %s is not valid" % str(sql_state)
+
+                del row            
+            del srows
+                
+        del irows
+        #print "done update cursors"
+        arcpy.Delete_management(in_data=_intersect)
+        return reclassLayer
+
+    except arcpy.ExecuteError:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+                    "function": "split_reclass",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                    "arcpyError": arcpy.GetMessages(2),
+                                    }
+                                    )
+    except:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+                    "function": "split_reclass",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:
+        _tempWorkspace = None
+        flds = None
+        val_fnd = None
+        sql_state = None
+    
+
+        del _tempWorkspace
+        del flds
+        del val_fnd
+        del sql_state
+      
+
+        gc.collect()
+def split_reclass_orig(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name):
 
     _tempWorkspace = None
     _intersect = None
@@ -883,7 +1004,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         # Process: Intersect Reporting Areas with Reporting Data to split them for accurate measurements
         arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
 
-        # Process: Add a field and calculate it with the groupings required for reporting.  If CP is set, _CP will be apped to the end of the material type.
+        # Process: Add a field and calculate it with the groupings required for reporting. .
         #print "at AddField_management"
         arcpy.AddField_management(in_table=_intersect, field_name=classified_layer_field_name, field_type="TEXT",field_precision= "", field_scale="", field_length="",
                                   field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
@@ -977,6 +1098,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         del newRows
 
         gc.collect()
+
 #----------------------------------------------------------------------
 def classified_pivot(classified_layer, classified_layer_field_name, reporting_areas_ID_field, count_field,summary_fields=''):
 
