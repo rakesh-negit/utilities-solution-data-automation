@@ -72,7 +72,7 @@ def exportDataForReport(reportConfig):
     
 #----------------------------------------------------------------------
 def create_report_layers_using_config(config):
-
+    arcpy.env.overwriteOutput = True
 
     reporting_areas_ID_field = None
     reporting_areas = None
@@ -538,7 +538,10 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
 
         filt_layer = "filter_layer"
         reporting_layer = datasources["Data"][report_params['Data']]
-        field_map = report_params['FieldMap']
+        if 'FieldMap' in report_params:
+            field_map = report_params['FieldMap']
+        else:
+            field_map = []
         sql = report_params['FilterSQL']
 
         code_exp = report_params['PreCalcExpression']
@@ -562,6 +565,11 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         report_ID_field = report_params['ReportIDField']
 
         avg_field_map = report_params['AverageToResultFieldMap']
+        
+        if 'UseArcMapExpression' in report_params:
+            useArcMapExpression = report_params['UseArcMapExpression']
+        else:
+            useArcMapExpression = False
 
         if sql == '' or sql is None or sql == '1=1' or sql == '1==1':
             filt_layer = reporting_layer
@@ -575,7 +583,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         else:
 
             result = split_average(reporting_areas=reporting_areas, reporting_areas_ID_field=reporting_areas_ID_field,reporting_layer=filt_layer,
-                         reporting_layer_field_map=field_map,code_exp=code_exp)
+                         reporting_layer_field_map=field_map,code_exp=code_exp,use_arcmap_expression=useArcMapExpression)
 
             if 'layer' in result:
 
@@ -592,7 +600,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
                                                 reportParam=report_params,
                                                 config=datasources)
                 print "%s was created" % report_result
-
+                deleteFC(in_datasets = [report_copy,result['layer']])
 
 
     except arcpy.ExecuteError:
@@ -605,6 +613,8 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
                     "arcpyError": arcpy.GetMessages(2),
                                     }
                                     )
+    except (ReportToolsError),e:
+        raise e     
     except:
         line, filename, synerror = trace()
         raise ReportToolsError({
@@ -822,7 +832,7 @@ def calculate_load_results(feature_data,
         del strOnlineTime
         gc.collect()
 #----------------------------------------------------------------------
-def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, reporting_layer_field_map,code_exp):
+def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, reporting_layer_field_map,code_exp,use_arcmap_expression=False):
     _tempWorkspace = None
     _intersect  = None
     sumstats = None
@@ -837,12 +847,19 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
 
         age_field="statsfield"
-        # Process: Add a field and calculate it with the groupings required for reporting.  If CP is set, _CP will be apped to the end of the material type.
+        # Process: Add a field and calculate it with the groupings required for reporting.  
         arcpy.AddField_management(in_table=_intersect, field_name=age_field, field_type="LONG",field_precision= "", field_scale="", field_length="",
                                   field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
 
-        calc_field(inputDataset=_intersect,field_map=reporting_layer_field_map,code_exp=code_exp,result_field=age_field)
-
+        if use_arcmap_expression:
+          
+            arcpy.CalculateField_management(in_table=_intersect, field=age_field, 
+                                           expression=code_exp, 
+                                           expression_type='PYTHON_9.3', 
+                                           code_block=None)
+        else:
+            calc_field(inputDataset=_intersect,field_map=reporting_layer_field_map,code_exp=code_exp,result_field=age_field)
+        
         arcpy.Statistics_analysis(_intersect,out_table=sumstats,statistics_fields=age_field + " MEAN",case_field=reporting_areas_ID_field)
 
         deleteFC([_intersect])
@@ -877,7 +894,8 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         gc.collect()
 
 #----------------------------------------------------------------------
-def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name, count_field_name,use_arcmap_expression=False):
+def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name, 
+                  count_field_name,use_arcmap_expression=False):
 
     _tempWorkspace = None
     _intersect = None
@@ -902,7 +920,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         desc = arcpy.Describe(_intersect)
        
         arcpy.CreateFeatureclass_management(_tempWorkspace, _unique_name, str(desc.shapeType).upper(), "", "DISABLED", "DISABLED", _intersect, "", "0", "0", "0")
-        
+        del desc
         arcpy.AddField_management(in_table=reclassLayer, field_name=classified_layer_field_name, field_type="TEXT",field_precision= "", field_scale="", field_length="",
                                   field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
         arcpy.AddField_management(in_table=reclassLayer, field_name=reporting_areas_ID_field, field_type="TEXT",field_precision= "", field_scale="", field_length="",
@@ -987,7 +1005,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                     
             del irows
         #print "done update cursors"
-        arcpy.Delete_management(in_data=_intersect)
+        deleteFC([_intersect])
         return reclassLayer
 
     except arcpy.ExecuteError:
@@ -1269,7 +1287,8 @@ def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_sch
 
         gc.collect()
 #----------------------------------------------------------------------
-def calculate_average_report_results(report_result, reporting_areas_ID_field,report_copy, field_map  ,report_date_field,report_ID_field,average_field,reportParam, config ):
+def calculate_average_report_results(report_result, reporting_areas_ID_field,report_copy, field_map,
+                                     report_date_field,report_ID_field,average_field,reportParam, config ):
     fields = None
     strOnlineTime = None
     search_fields = None
@@ -1283,8 +1302,8 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
         fields.append(report_date_field)
         fields.append("SHAPE@")
 
-        strOnlineTime = Common.online_time_to_string(Common.local_time_to_online(),dateTimeFormat)
-        #strLocalTime = datetime.datetime.now().strftime(dateTimeFormat)
+        #strOnlineTime = Common.online_time_to_string(Common.local_time_to_online(),dateTimeFormat)
+        strLocalTime = datetime.datetime.now().strftime(dateTimeFormat)
         search_fields = [average_field,reporting_areas_ID_field,"SHAPE@"]
 
         with arcpy.da.InsertCursor(report_result,fields) as irows:
@@ -1293,11 +1312,14 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
                     newrow = []
                     for fld in field_map:
                         try:
-                            newrow.append(eval(fld["Expression"].replace("{Value}", str(Common.noneToValue( row[0],0.0)))))
+                            if '{Value}' in fld['Expression']:
+                                newrow.append(eval(fld["Expression"].replace("{Value}", str(Common.noneToValue( row[0],0.0)))))
+                            else:
+                                newrow.append(eval(fld["Expression"].replace("{PreCalcExpressionValue}", str(Common.noneToValue( row[0],0.0)))))
                         except Exception:
                             newrow.append(None)
                     newrow.append(row[1])
-                    newrow.append(strOnlineTime)
+                    newrow.append(strLocalTime)
                     newrow.append(row[2])
 
                     irows.insertRow(tuple(newrow)  )
@@ -1341,37 +1363,53 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
         gc.collect()
 
 #----------------------------------------------------------------------
-def calculate_report_results(report_result, reporting_areas_ID_field,report_copy, reclass_map  ,report_date_field,report_ID_field ,exp, reportParam, config ):
+def calculate_report_results(report_result, reporting_areas_ID_field,report_copy, reclass_map, report_date_field,report_ID_field, 
+                             exp, reportParam, config,use_arcmap_expression=False):
     appendString = None
     fields = None
     strOnlineTime = None
     try:
-        appendString=""
+        
+        reporting_areas_Date_field = 'tempreportdate1'        
+        arcpy.AddField_management(in_table=report_copy, field_name=reporting_areas_Date_field, field_type="DATE", field_precision="", field_scale="", field_length="", field_alias="", field_is_nullable="NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
+        
+        #strOnlineTime = Common.online_time_to_string(Common.local_time_to_online(),dateTimeFormat)
+        strLocalTime = datetime.datetime.now().strftime(dateTimeFormat)
         fields = []
+        appendString=""
+        
         for fld in reclass_map:
-            appendString +=   fld['FieldName'] + " \"\" true true false 8 Double 0 0 ,First,#," + report_copy + "," + fld['FieldName'] + ",-1,-1;"
+            appendString += fld['FieldName'] + " \"\" true true false 8 Double 0 0 ,First,#," + report_copy + "," + fld['FieldName'] + ",-1,-1;"
             fields.append(fld['FieldName'])
 
         appendString +=  report_ID_field + " \"\" true true false 80 string 0 0 ,First,#," + report_copy + "," + reporting_areas_ID_field + ",-1,-1;"
-
-
-        arcpy.Append_management(report_copy,report_result, "NO_TEST",appendString, "")
-
-        strOnlineTime = Common.online_time_to_string(Common.local_time_to_online(),dateTimeFormat)
-        #strLocalTime = datetime.datetime.now().strftime(dateTimeFormat)
-        fields.append(report_date_field)
-
-        with arcpy.da.UpdateCursor(report_result,fields) as urows:
+        appendString +=  report_date_field + " \"\" true true false 80 string 0 0 ,First,#," + report_copy + "," + reporting_areas_Date_field + ",-1,-1;"
+         
+        newFld = []
+        field_names = [f.name for f in arcpy.ListFields(report_copy)]
+        for field in fields:
+            if not field in field_names:
+                arcpy.AddField_management(in_table=report_copy, field_name=field, field_type="TEXT", field_precision="", field_scale="", field_length="", field_alias="", field_is_nullable="NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
+                newFld.append(fld['FieldName'])
+       
+        fields.append(reporting_areas_Date_field)
+        with arcpy.da.UpdateCursor(report_copy,fields) as urows:
             for row in urows:
                 for u in range(len(fields) - 1):
-                    row[u]= eval(exp.replace('{Value}', str(Common.noneToValue( row[u],0.0))))# {'__builtins__':{}}
-
+                    if '{Value}' in exp:
+                        row[u] = eval(exp.replace("{Value}", str(Common.noneToValue( row[u],0))))
+                    else:
+                        row[u] = eval(exp.replace("{ReclassField}", str(Common.noneToValue( row[u],0))))
+                   
                 if row[len(fields)-1] == None:
-                    row[len(fields)-1] = strOnlineTime
-
+                    row[len(fields)-1] = strLocalTime
+       
                 urows.updateRow(row)
             del urows
 
+        arcpy.Append_management(report_copy,report_result, "NO_TEST",appendString, "")
+
+       
         # The current recordset that is completed, send it to a merged feature for CSV export process layer.
         mergeAllReports(reportLayer=report_result, report=reportParam, config=config)
 
