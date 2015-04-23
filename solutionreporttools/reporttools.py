@@ -546,8 +546,8 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
 
         code_exp = report_params['PreCalcExpression']
 
-        report_schema = datasources["SchemaGDB"] + "/" + report_params['ReportResultSchema']
-        report_result = datasources["ResultsGDB"] + "/" + report_params['ReportResult']
+        report_schema = os.path.join(datasources["SchemaGDB"], report_params['ReportResultSchema'])
+        report_result = os.path.join(datasources["ResultsGDB"], report_params['ReportResult'])
 
         #if not os.path.isabs(report_result):
             #report_result =os.path.abspath( report_result)
@@ -960,7 +960,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                                              workspace=None, 
                                              field_info=None)
                 reccount = arcpy.GetCount_management(selectLayer)
-                print "%s records found to match %s" % (field["FieldName"],str(reccount))
+                #print "%s records found to match %s" % (field["FieldName"],str(reccount))
                 if reccount > 0 :
                    
                     with arcpy.da.InsertCursor(reclassLayer, reclassFlds) as irows:
