@@ -34,42 +34,146 @@ def trace():
 class ReportToolsError(Exception):
     """ raised when error occurs in utility module functions """
     pass
-def exportDataForReport(reportConfig):
-    if('TempExportLocation' in reportConfig):
-        if (reportConfig["TempExportLocation"] != ""):
-            startTime = datetime.datetime.now()                                                    
-            print "Data Export Prep Script starting at: %s" % str(startTime.strftime(dateTimeFormat))
+
+def getLayerName(fc):
+    fcName = os.path.basename(fc)
+    if '.' in fcName:
+        fcSplit = fcName.split('.')
+        fcName = fcSplit[len(fcSplit) - 1]    
+    return fcName
+#----------------------------------------------------------------------
+def reportDataPrep(reportConfig):
     
-            prepDataDict = {}                                                                                
-            prepDataDict["Overwrite"] = "YES"
-            prepDataDict["SDEPath"] = ""
-            prepDataDict["GDBPath"] = reportConfig["TempExportLocation"]
-            prepDataDict["FeatureClasses"] = [reportConfig["ReportingAreas"]]
-    
-            if reportConfig["ReportingAreas"].upper().find(".SDE") != -1:
-                reportConfig["ReportingAreas"] = reportConfig["TempExportLocation"] + "/" + reportConfig["ReportingAreas"].split('.')[-1]
-            else:
-                reportConfig["ReportingAreas"] = reportConfig["TempExportLocation"] + "/" + reportConfig["ReportingAreas"].split('/')[-1]                                 
-            for key, value in reportConfig["Data"].iteritems():
-                prepDataDict["FeatureClasses"].append(value)
-                if value.upper().find(".SDE") != -1:
-                    reportConfig["Data"][key] = reportConfig["TempExportLocation"] + "/" + value.split('.')[-1]
+    try:   
+        print " "
+        print "-----Data Prep Section Starting-----"  
+
+        startTime = datetime.datetime.now()
+
+        if 'ExportDataLocally' in reportConfig and (reportConfig['ExportDataLocally'].upper() == "YES" or reportConfig['ExportDataLocally'].upper() == "TRUE"):
+            if('TempExportLocation' in reportConfig and reportConfig["TempExportLocation"] != ""):
+                startSectTime = datetime.datetime.now() 
+                print "Data Copy starting: %s" % (startSectTime.strftime(dateTimeFormat))                                                               
+                
+                
+                outputWorkspace = reportConfig["TempExportLocation"]
+                _CheckCreateGDBProcess(outputWorkspace)
+                if 'ReportingAreas' in reportConfig:
+                    if arcpy.Exists(dataset=reportConfig['ReportingAreas']) == True:
+                        fcName = getLayerName(reportConfig['ReportingAreas'])
+                        reportConfig['ReportingAreas'] = str(arcpy.FeatureClassToFeatureClass_conversion(reportConfig['ReportingAreas'],outputWorkspace,fcName))
+                        #arcpy.ClearWorkspaceCache_management(reportConfig['ReportingAreas'])                        
+                        print "Completed copy on {0}".format(fcName)   
+                    else:
+                        raise ReportToolsError({
+                            "function": "reportDataPrep",
+                            "line": 62,
+                            "filename":  "reportTools.py",
+                            "synerror": reportConfig['ReportingAreas'] + " does not exist"                                                              ,
+                        })                           
+                        
+                    
                 else:
-                    reportConfig["Data"][key] = reportConfig["TempExportLocation"] + "/" + value.split('/')[-1] 
+                    print "Warning: ReportingAreas parameter is missing"                            
+                if 'Data' in reportConfig and isinstance(reportConfig['Data'],dict):                   
+                    for key,featClass in reportConfig['Data'].items():
+                        if arcpy.Exists(dataset=featClass) == True:
+                            fcName = getLayerName(fc=featClass)
+                            fcRes = arcpy.FeatureClassToFeatureClass_conversion(featClass,outputWorkspace,fcName)
+                            #arcpy.ClearWorkspaceCache_management(featClass)            
+                            reportConfig['Data'][key] = str(fcRes)
+                                
+                            print "Completed copy on {0}".format(fcName)                             
+                        else:
+                            reportConfig['Data'][key] = featClass
+                else:
+                    print "Warning: Data section is missing"    
+                print "Data Copy complete, time to complete: %s" % str(datetime.datetime.now() - startSectTime)
+        if 'PreProcessingTasks' in reportConfig and reportConfig['PreProcessingTasks']:
     
-            finalDict = {"Databases":[prepDataDict]}
-            prepData = DataPrep.DataPrep(configFilePath=finalDict)                        
-            prepData.CopyData()
-            print "Data Export Prep Script complete, time to complete: %s" % str(datetime.datetime.now() - startTime)
-            return reportConfig
-        else:
-            print "%s is invalid" % reportConfig['TempExportLocation']
-            return reportConfig
-        
-    else:
-        print "%s is missing from config" % 'TempExportLocation'
+            startSectTime = datetime.datetime.now() 
+            print " "
+            print "Preprocessing: %s" % (startSectTime.strftime(dateTimeFormat))                                                               
+
+            for process in reportConfig['PreProcessingTasks']:
+                if process["ToolType"].upper() == "MODEL":
+                    arcpy.ImportToolbox(process["ToolPath"])
+                    arcpy.gp.toolbox = process["ToolPath"]
+                    tools = arcpy.ListTools()
+                    for tool in process["Tools"]:
+                        if tool in tools:
+                            customCode = "arcpy." + tool + "()"
+                            eval(customCode)
+                            print "Finished executing model {0}".format(tool)
+                elif process["ToolType"].upper() == "SCRIPT":
+                    for tool in process["Tools"]:
+                        scriptPath = process["ToolPath"] + "/" + tool
+                        subprocess.call([sys.executable, os.path.join(scriptPath)])
+                        print "Finished executing script {0}".format(tool)
+                else:
+                    print "Sorry, not a valid tool"        
+            print "PreProcess complete, time to complete: %s" % str(datetime.datetime.now() - startSectTime)
+        arcpy.ClearWorkspaceCache_management()            
+        print "-----Data Prep Section complete, time to complete: %s-----" % str(datetime.datetime.now() - startTime)
         return reportConfig
-    
+    except arcpy.ExecuteError:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+            "function": "CopyData",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+            "arcpyError": arcpy.GetMessages(2),
+        })
+    except (ReportToolsError),e:
+        raise e
+    except:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+            "function": "CopyData",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+    })        
+
+#----------------------------------------------------------------------
+def _CheckCreateGDBProcess(outputWorkspace):
+    try:
+        # If user param is to overwrite GDB, then delete it first
+        if arcpy.Exists(outputWorkspace)==True:
+            arcpy.Delete_management(outputWorkspace)
+            print "Deleted previous GDB {0}".format(outputWorkspace)
+         
+        # if the local gdb doesn't exist, then create it using the path and name given in the end_db string
+        if arcpy.Exists(outputWorkspace)==False:
+            if outputWorkspace.rfind("\\") != -1:    
+                lastSlash = outputWorkspace.rfind("\\")
+            else:
+                lastSlash = outputWorkspace.rfind("/")           
+            arcpy.CreateFileGDB_management(outputWorkspace[:lastSlash], outputWorkspace[lastSlash+1:])
+            
+            print "Created geodatabase {0}".format(outputWorkspace[lastSlash+1:])
+       
+            
+    except arcpy.ExecuteError:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+            "function": "_CheckCreateGDBProcess",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+            "arcpyError": arcpy.GetMessages(2),
+        })
+    except:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+            "function": "_CheckCreateGDBProcess",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+        })        
+   
+
 #----------------------------------------------------------------------
 def create_report_layers_using_config(config):
     arcpy.env.overwriteOutput = True
@@ -398,6 +502,14 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         reclass_map = report_params['ReclassMap']
 
         report_schema = os.path.join(datasources["SchemaGDB"], report_params['ReportResultSchema'])
+        if arcpy.Exists(report_schema) == False:
+            raise ReportToolsError({
+                "function": "create_reclass_report",
+                "line": 285,
+                "filename":  "reportTools",
+                "synerror": '%s does not exist' % report_schema
+            }
+                                   )            
         report_result = os.path.join(datasources["ResultsGDB"], report_params['ReportResult'])
  
         #if not os.path.isabs(report_result):
@@ -405,12 +517,19 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
 
         #if not os.path.isabs(report_schema):
             #report_schema =os.path.abspath( report_schema)
-        if 'ReportAppend' in report_params:
-            report_append_flag = report_params['ReportAppend']
+        if 'ReportOutputType' in report_params:
+            report_output_type = report_params['ReportOutputType']
 
         else:
-            print "Report is missing the ReportAppend parameter:  type string, values, True or False"
-            report_append_flag = 'false'
+            print "Report is missing the ReportOutputType parameter:  type string, values: Overwrite, Append, Update"
+            report_output_type = 'Overwrite'
+        reporting_areas_filter = None
+        if 'ReportingAreasFilter' in report_params:
+            filt_report_layer = 'filteredReportingAreas'
+            reporting_areas_filter = report_params['ReportingAreasFilter']   
+            arcpy.MakeFeatureLayer_management(reporting_areas, filt_report_layer, reporting_areas_filter, "", "")
+        else:
+            filt_report_layer = reporting_areas
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
         result_exp = report_params['FinalResultExpression']
@@ -419,43 +538,63 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
             useArcMapExpression = report_params['UseArcMapExpression']
         else:
             useArcMapExpression = False
-    
+        
         #if type(value_field) is tuple:
         #    average_value = value_field[1]
         #    value_field = value_field[0]
 
+        validate_schema_map(report_schema=report_schema, 
+                            reclass_map=reclass_map, 
+                            report_date_field=report_date_field,
+                            report_ID_field=report_ID_field)
         if sql == '' or sql is None or sql == '1=1' or sql == '1==1':
             filt_layer = reporting_layer
         else:
             #arcpy.MakeQueryTable_management(in_table=reporting_layer,out_table=filt_layer,in_key_field_option="USE_KEY_FIELDS",in_key_field="#",in_field="#",where_clause=sql)
-            arcpy.MakeFeatureLayer_management(reporting_layer, filt_layer, sql, "", "")
+            try:
+                arcpy.MakeFeatureLayer_management(reporting_layer, filt_layer, sql, "", "")
+            except arcpy.ExecuteError:
+                line, filename, synerror = trace()
+                if 'Description' in report_params:
+                    errorString = "Report Description: %s" % report_params['Description']
+                else:
+                    errorString = synerror
+                raise ReportToolsError({
+                    "function": "create_reclass_report: %s" % reporting_layer,
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": errorString,
+                    "arcpyError": arcpy.GetMessages(2),
+                })            
 
         inputCnt = int(arcpy.GetCount_management(in_rows=filt_layer)[0])
         if inputCnt == 0:
-            copy_empty_report(reporting_areas=reporting_areas, reporting_areas_ID_field=reporting_areas_ID_field,
+            copy_empty_report(reporting_areas=filt_report_layer, reporting_areas_ID_field=reporting_areas_ID_field,
                               report_schema=report_schema,
                               report_result=report_result,
                               reclass_map=reclass_map,
                               report_date_field=report_date_field,
                               report_ID_field=report_ID_field,
                               reportParam=report_params,
-                              config=datasources,report_append_flag=report_append_flag)
+                              config=datasources,report_output_type=report_output_type)
             print "%s was created" % report_result
         else:
             #print "at split_reclass"
-            classified_layer = split_reclass(reporting_areas=reporting_areas, reporting_areas_ID_field=reporting_areas_ID_field,reporting_layer=filt_layer,field_map=field_map,
+            classified_layer = split_reclass(reporting_areas=filt_report_layer, reporting_areas_ID_field=reporting_areas_ID_field,reporting_layer=filt_layer,field_map=field_map,
                                              reclass_map=reclass_map,classified_layer_field_name = classified_layer_field_name,count_field_name=count_field,use_arcmap_expression=useArcMapExpression)
                 
             #print "at classified_pivot"
             pivot_layer = classified_pivot(classified_layer=classified_layer, classified_layer_field_name=classified_layer_field_name,
                                            reporting_areas_ID_field=reporting_areas_ID_field,count_field=count_field)
             #print "at copy_report_data_schema"
-            report_copy = copy_report_data_schema(reporting_areas=reporting_areas,reporting_areas_ID_field=reporting_areas_ID_field,report_schema=report_schema,
-                                                  report_result=report_result,join_layer=pivot_layer,report_append_flag=report_append_flag)
+            report_copy = copy_report_data_schema(reporting_areas=filt_report_layer,reporting_areas_ID_field=reporting_areas_ID_field,report_schema=report_schema,
+                                                  report_result=report_result,join_layer=pivot_layer,report_output_type=report_output_type)
 
             #print "at calculate_report_results"
             calculate_report_results(report_result=report_result,  reporting_areas_ID_field=reporting_areas_ID_field,report_copy=report_copy,
-                                     reclass_map=reclass_map, report_date_field=report_date_field,report_ID_field=report_ID_field, exp=result_exp, reportParam=report_params, config=datasources)
+                                     reclass_map=reclass_map, report_date_field=report_date_field,report_ID_field=report_ID_field, 
+                                     exp=result_exp, reportParam=report_params, config=datasources,use_arcmap_expression=useArcMapExpression,
+                                     report_output_type=report_output_type,delete_append_sql=reporting_areas_filter)
             #print "at deleteFC"
             deleteFC([classified_layer,pivot_layer,report_copy])
 
@@ -555,12 +694,12 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         #if not os.path.isabs(report_schema):
             #report_schema =os.path.abspath( report_schema)
 
-        if 'ReportAppend' in report_params:
-            report_append_flag = report_params['ReportAppend']
-            
+        if 'ReportOutputType' in report_params:
+            report_output_type = report_params['ReportOutputType']
+
         else:
-            report_append_flag = 'false'
-            print "Report is missing the ReportAppend parameter:  type string, values, True or False"
+            print "Report is missing the ReportOutputType parameter:  type string, values: Overwrite, Append, Update"
+            report_output_type = 'Overwrite'
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
 
@@ -588,7 +727,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
             if 'layer' in result:
 
                 report_copy = copy_report_data_schema(reporting_areas=reporting_areas,reporting_areas_ID_field=reporting_areas_ID_field,report_schema=report_schema,
-                                                      report_result=report_result,join_layer=result['layer'],report_append_flag=report_append_flag)
+                                                      report_result=report_result,join_layer=result['layer'],report_output_type=report_output_type)
 
                 report_result = calculate_average_report_results(report_result=report_result,
                                                 reporting_areas_ID_field=reporting_areas_ID_field ,
@@ -953,12 +1092,22 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         selectLayer = "selectLayer"
         if use_arcmap_expression:
             for field in reclass_map:
-                sql_state = field['Expression']            
-                arcpy.MakeFeatureLayer_management(in_features=_intersect, 
+                sql_state = field['Expression']      
+                try:
+                    arcpy.MakeFeatureLayer_management(in_features=_intersect, 
                                              out_layer=selectLayer, 
                                              where_clause=sql_state, 
                                              workspace=None, 
                                              field_info=None)
+                except arcpy.ExecuteError:
+                    line, filename, synerror = trace()
+                    raise ReportToolsError({
+                        "function": "create_reclass_report: %s" % split_reclass,
+                        "line": line,
+                        "filename":  filename,
+                        "synerror": synerror,
+                        "arcpyError": arcpy.GetMessages(2),
+                    })                 
                 reccount = arcpy.GetCount_management(selectLayer)
                 #print "%s records found to match %s" % (field["FieldName"],str(reccount))
                 if reccount > 0 :
@@ -1018,6 +1167,9 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                     "arcpyError": arcpy.GetMessages(2),
                                     }
                                     )
+    except ReportToolsError,e:
+        raise e
+            
     except:
         line, filename, synerror = trace()
         raise ReportToolsError({
@@ -1041,119 +1193,6 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
       
 
         gc.collect()
-def split_reclass_orig(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name):
-
-    _tempWorkspace = None
-    _intersect = None
-    flds = None
-    val_fnd = None
-    sql_state = None
-    newRow = None
-    newRows = None
-
-    try:
-        _tempWorkspace = env.scratchGDB
-
-        _intersect = os.path.join(_tempWorkspace ,Common.random_string_generator())
-
-        # Process: Intersect Reporting Areas with Reporting Data to split them for accurate measurements
-        arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
-
-        # Process: Add a field and calculate it with the groupings required for reporting. .
-        #print "at AddField_management"
-        arcpy.AddField_management(in_table=_intersect, field_name=classified_layer_field_name, field_type="TEXT",field_precision= "", field_scale="", field_length="",
-                                  field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
-
-        flds = []
-        for fld in field_map:
-            flds.append(fld['FieldName'])
-        flds.append(reporting_areas_ID_field)
-        flds.append( "SHAPE@")
-        flds.append(classified_layer_field_name)
-
-        newRows = []
-        
-        #summaryRow = []
-        #print "at Update Cursor"
-        with arcpy.da.UpdateCursor(_intersect, flds) as urows:
-            for row in urows:
-                val_fnd = False
-                for field in reclass_map:
-                    sql_state = field['Expression']
-                    try:
-
-
-                        for i in range (len( field_map)):
-                            sql_state = sql_state.replace(field_map[i]['Expression'],str(row[i]))
-
-                        if eval(sql_state) == True:
-                            try:
-                                if val_fnd == True:
-                                    newRow = deepcopy(row)
-                                    newRow[len(flds) - 1] = field['FieldName']
-                                    newRows.append(newRow)
-                                    #Add Export Summary Table
-                                    #summaryRow.append(deepcopy(row))
-                                else:
-                                    row[len(flds) - 1] = field['FieldName']
-                                    val_fnd = True
-                            except Exception, e:
-                                print "%s" % e
-                           
-                    except Exception, e:
-                        print "WARNING: %s is not valid" % str(sql_state)
-
-                if val_fnd == False:
-
-                    row[len(flds) - 1] = 'NORECLASS'
-                urows.updateRow(row)
-            del row
-            del urows
-            if len(newRows) > 0 :
-                with arcpy.da.InsertCursor(_intersect, flds) as irows:
-
-                    for newRow in newRows:
-                        irows.insertRow(newRow)
-                del irows
-        #print "done update cursors"
-        return _intersect
-
-    except arcpy.ExecuteError:
-        line, filename, synerror = trace()
-        raise ReportToolsError({
-                    "function": "split_reclass",
-                    "line": line,
-                    "filename":  filename,
-                    "synerror": synerror,
-                    "arcpyError": arcpy.GetMessages(2),
-                                    }
-                                    )
-    except:
-        line, filename, synerror = trace()
-        raise ReportToolsError({
-                    "function": "split_reclass",
-                    "line": line,
-                    "filename":  filename,
-                    "synerror": synerror,
-                                    }
-                                    )
-    finally:
-        _tempWorkspace = None
-        flds = None
-        val_fnd = None
-        sql_state = None
-        newRow = None
-        newRows = None
-
-        del _tempWorkspace
-        del flds
-        del val_fnd
-        del sql_state
-        del newRow
-        del newRows
-
-        gc.collect()
-
 #----------------------------------------------------------------------
 def classified_pivot(classified_layer, classified_layer_field_name, reporting_areas_ID_field, count_field,summary_fields=''):
 
@@ -1178,7 +1217,7 @@ def classified_pivot(classified_layer, classified_layer_field_name, reporting_ar
     except arcpy.ExecuteError:
         line, filename, synerror = trace()
         raise ReportToolsError({
-                    "function": "JoinAndCalc",
+                    "function": "classified_pivot",
                     "line": line,
                     "filename":  filename,
                     "synerror": synerror,
@@ -1188,7 +1227,7 @@ def classified_pivot(classified_layer, classified_layer_field_name, reporting_ar
     except:
         line, filename, synerror = trace()
         raise ReportToolsError({
-                    "function": "JoinAndCalc",
+                    "function": "classified_pivot",
                     "line": line,
                     "filename":  filename,
                     "synerror": synerror,
@@ -1204,7 +1243,7 @@ def classified_pivot(classified_layer, classified_layer_field_name, reporting_ar
         gc.collect()
 
 #----------------------------------------------------------------------
-def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_schema ,report_result, join_layer,report_append_flag):
+def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_schema ,report_result, join_layer,report_output_type):
 
     _tempWorkspace = None
     _reportCopy = None
@@ -1229,7 +1268,7 @@ def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_sch
             #report_schema =os.path.abspath( report_schema)
 
         # New flag for weather or not to append data to exist results or clear it out.
-        if report_append_flag.upper() == "YES" or report_append_flag.upper() == "TRUE":
+        if report_output_type.upper() == "APPEND":
             if arcpy.Exists(report_result) == False:
                 if arcpy.Exists(report_schema) == False:
                     raise ReportToolsError({
@@ -1248,10 +1287,30 @@ def copy_report_data_schema(reporting_areas, reporting_areas_ID_field,report_sch
                                                            field_mapping=None, 
                                                            config_keyword=None)
                 #arcpy.Copy_management(report_schema,report_result,"FeatureClass")
+        elif report_output_type.upper() == "UPDATE":        
+            if not arcpy.Exists(dataset=report_result):
+                if arcpy.Exists(report_schema) == False:
+                    raise ReportToolsError({
+                        "function": "copy_report_data_schema",
+                        "line": 990,
+                        "filename":  'reporttools',
+                        "synerror": "%s could not be located" %report_schema
+                    }
+                                           )                       
+                className = os.path.basename(report_result)
+                layerPath = os.path.dirname(report_result)
+                
+                arcpy.FeatureClassToFeatureClass_conversion(in_features=report_schema, 
+                                                            out_path=layerPath, 
+                                                            out_name=className, 
+                                                            where_clause=None, 
+                                                            field_mapping=None, 
+                                                            config_keyword=None)            
         else:
             #arcpy.Copy_management(report_schema,report_result,"FeatureClass")
             className = os.path.basename(report_result)
             layerPath = os.path.dirname(report_result)
+            
             arcpy.FeatureClassToFeatureClass_conversion(in_features=report_schema, 
                                                         out_path=layerPath, 
                                                         out_name=className, 
@@ -1364,50 +1423,101 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
 
 #----------------------------------------------------------------------
 def calculate_report_results(report_result, reporting_areas_ID_field,report_copy, reclass_map, report_date_field,report_ID_field, 
-                             exp, reportParam, config,use_arcmap_expression=False):
-    appendString = None
-    fields = None
-    strOnlineTime = None
+                             exp, reportParam, config,use_arcmap_expression=False,report_output_type='Overwrite',delete_append_sql=None):
+    
+   
     try:
+      
         
         reporting_areas_Date_field = 'tempreportdate1'        
         arcpy.AddField_management(in_table=report_copy, field_name=reporting_areas_Date_field, field_type="DATE", field_precision="", field_scale="", field_length="", field_alias="", field_is_nullable="NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
         
         #strOnlineTime = Common.online_time_to_string(Common.local_time_to_online(),dateTimeFormat)
         strLocalTime = datetime.datetime.now().strftime(dateTimeFormat)
-        fields = []
-        appendString=""
+        
+        
+        reclass_fields = []
+        copyFields = []
         
         for fld in reclass_map:
-            appendString += fld['FieldName'] + " \"\" true true false 8 Double 0 0 ,First,#," + report_copy + "," + fld['FieldName'] + ",-1,-1;"
-            fields.append(fld['FieldName'])
+            reclass_fields.append(fld['FieldName']) 
+            
+        reportDataFieldNames = [f.name for f in arcpy.ListFields(report_copy)]
+        for reclass_field in reclass_fields:
+            if not reclass_field in reportDataFieldNames:
+                arcpy.AddField_management(in_table=report_copy, field_name=reclass_field, field_type="TEXT", field_precision="", field_scale="", field_length="", field_alias="", field_is_nullable="NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
 
-        appendString +=  report_ID_field + " \"\" true true false 80 string 0 0 ,First,#," + report_copy + "," + reporting_areas_ID_field + ",-1,-1;"
-        appendString +=  report_date_field + " \"\" true true false 80 string 0 0 ,First,#," + report_copy + "," + reporting_areas_Date_field + ",-1,-1;"
-         
-        newFld = []
-        field_names = [f.name for f in arcpy.ListFields(report_copy)]
-        for field in fields:
-            if not field in field_names:
-                arcpy.AddField_management(in_table=report_copy, field_name=field, field_type="TEXT", field_precision="", field_scale="", field_length="", field_alias="", field_is_nullable="NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
-                newFld.append(fld['FieldName'])
-       
-        fields.append(reporting_areas_Date_field)
-        with arcpy.da.UpdateCursor(report_copy,fields) as urows:
+                
+        reportDataFields = arcpy.ListFields(report_copy)
+        
+        resultFields = [f.name for f in arcpy.ListFields(report_result)]
+             
+        fms = arcpy.FieldMappings()
+        for fld in reportDataFields:
+
+            if fld.name == reporting_areas_Date_field:
+                fm = arcpy.FieldMap()
+
+                fm.addInputField(report_copy, fld.name)
+                outField=fm.outputField
+                outField.name=report_date_field
+                fm.outputField=outField          
+                fms.addFieldMap(fm)     
+                
+                copyFields.append((fld.name,report_date_field))
+            elif fld.name == report_ID_field:
+                fm = arcpy.FieldMap()
+                fm.addInputField(report_copy, fld.name)
+                outField=fm.outputField
+                outField.name=reporting_areas_ID_field
+                fm.outputField=outField          
+                fms.addFieldMap(fm)   
+                #copyFields.append((fld.name,reporting_areas_ID_field ))
+            elif fld.name in resultFields and fld.type != 'OID' and fld.type != 'Geometry':
+                fm = arcpy.FieldMap()
+                fm.addInputField(report_copy, fld.name)
+                outField=fm.outputField
+                outField.name=fld.name
+                fm.outputField=outField          
+                fms.addFieldMap(fm)                
+                copyFields.append((fld.name,fld.name ))
+     
+        reclass_fields.append(reporting_areas_Date_field)
+        with arcpy.da.UpdateCursor(report_copy,reclass_fields) as urows:
             for row in urows:
-                for u in range(len(fields) - 1):
+                for u in range(len(reclass_fields) - 1):
                     if '{Value}' in exp:
                         row[u] = eval(exp.replace("{Value}", str(Common.noneToValue( row[u],0))))
                     else:
                         row[u] = eval(exp.replace("{ReclassField}", str(Common.noneToValue( row[u],0))))
                    
-                if row[len(fields)-1] == None:
-                    row[len(fields)-1] = strLocalTime
+                row[len(reclass_fields)-1] = strLocalTime
        
                 urows.updateRow(row)
             del urows
-
-        arcpy.Append_management(report_copy,report_result, "NO_TEST",appendString, "")
+    
+        if report_output_type.upper() == "UPDATE":    
+            if not delete_append_sql:
+                raise ReportToolsError({
+                    "function": "calculate_report_results",
+                    "line": 1450,
+                    "filename":  'reportTools',
+                    "synerror": 'SQL syntax is not valid for UPDATE'
+                    })                
+            delfromreport = 'deleteFromReport'
+            JoinAndCalc(inputDataset=report_result, 
+                        inputJoinField=reporting_areas_ID_field, 
+                        joinTable=report_copy, 
+                        joinTableJoinField=report_ID_field, copyFields=copyFields, 
+                        joinType="KEEP_ALL")
+            #arcpy.MakeFeatureLayer_management(in_features=report_result, 
+                                             #out_layer=delfromreport, 
+                                             #where_clause=delete_append_sql, 
+                                             #workspace=None, 
+                                             #field_info=None)
+            #arcpy.DeleteFeatures_management(in_features=delfromreport)
+        else:
+            arcpy.Append_management(report_copy,report_result, "NO_TEST",fms, "")
 
        
         # The current recordset that is completed, send it to a merged feature for CSV export process layer.
@@ -1422,7 +1532,9 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
                     "synerror": synerror,
                     "arcpyError": arcpy.GetMessages(2),
                                     }
-                                    )
+                                  )
+    except ReportToolsError,e:
+        raise e
     except:
         line, filename, synerror = trace()
         raise ReportToolsError({
@@ -1434,17 +1546,60 @@ def calculate_report_results(report_result, reporting_areas_ID_field,report_copy
                                     )
 
     finally:
-        appendString = None
-        fields = None
-        strOnlineTime = None
-
-        del appendString
-        del fields
-        del strOnlineTime
+   
         gc.collect()
 
 #----------------------------------------------------------------------
-def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,report_result,reclass_map  ,report_date_field,report_ID_field, reportParam, config,report_append_flag):
+def validate_schema_map(report_schema,reclass_map,report_date_field,report_ID_field):
+    try:
+        valid = True    
+        fieldList = arcpy.ListFields(report_schema)
+        
+        layer_fields = []
+        for field in fieldList:
+            layer_fields.append(field.name)
+            
+        for fld in reclass_map:
+            if not fld['FieldName'] in layer_fields:
+                print "%s does not exist in %s" % (fld['FieldName'],report_schema)
+                valid = False
+            
+        if not report_date_field in layer_fields:
+            print "%s (Report Date Field) does not exist in %s" % (report_date_field,report_schema)
+            valid = False        
+        if not report_ID_field in layer_fields:
+            print "%s (ID Field) does not exist in %s" % (report_ID_field,report_schema)
+            valid = False                
+        if valid == False:
+            
+            raise ReportToolsError({
+                "function": "validate_schema_map",
+                "line": 1454,
+                "filename":  'reporttools',
+                "synerror": "%s does not contain all the fields contained in the config" % report_schema
+            })           
+    except arcpy.ExecuteError:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+            "function": "validate_schema_map",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+            "arcpyError": arcpy.GetMessages(2),
+        })
+    except ReportToolsError,e:
+        raise e
+    except:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+            "function": "validate_schema_map",
+            "line": line,
+            "filename":  filename,
+            "synerror": synerror,
+        })
+
+#----------------------------------------------------------------------
+def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,report_result,reclass_map  ,report_date_field,report_ID_field, reportParam, config,report_output_type):
 
     _tempWorkspace = None
     _reportCopy = None
@@ -1464,7 +1619,7 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
         arcpy.FeatureClassToFeatureClass_conversion(reporting_areas, _tempWorkspace, _reportCopy, "", reporting_areas_ID_field + ' "' + reporting_areas_ID_field + '" true true false 50 Text 0 0 ,First,#,' + reporting_areas +',' + reporting_areas_ID_field + ',-1,-1', "")
 
 
-        if report_append_flag.upper() == "YES" or report_append_flag.upper() == "TRUE":
+        if report_output_type.upper() == "APPEND":
             if arcpy.Exists(report_result) == False:
                 if arcpy.Exists(report_schema) == False:
                     raise ReportToolsError({
@@ -1483,10 +1638,23 @@ def copy_empty_report(reporting_areas, reporting_areas_ID_field,report_schema ,r
                                                             field_mapping=None, 
                                                             config_keyword=None)
                 #arcpy.Copy_management(report_schema,report_result,"FeatureClass")
-        else:
-            #arcpy.Copy_management(report_schema,report_result,"FeatureClass")
+        elif report_output_type.upper() == "UPDATE":
             className = os.path.basename(report_result)
             layerPath = os.path.dirname(report_result)
+            if not arcpy.Exists(dataset=layerPath):
+                arcpy.FeatureClassToFeatureClass_conversion(in_features=report_schema, 
+                                                            out_path=layerPath, 
+                                                            out_name=className, 
+                                                            where_clause=None, 
+                                                            field_mapping=None, 
+                                                            config_keyword=None)            
+            else:
+                print "Not implemented yet"
+            #arcpy.Copy_management(report_schema,report_result,"FeatureClass")
+        else:   
+            className = os.path.basename(report_result)
+            layerPath = os.path.dirname(report_result)
+            
             arcpy.FeatureClassToFeatureClass_conversion(in_features=report_schema, 
                                                         out_path=layerPath, 
                                                         out_name=className, 
@@ -2013,10 +2181,11 @@ def mergeAllReports(reportLayer, report, config):
             print "Report is missing the ReportMerge parameter:  type string, values, True or False"
         if report['ReportMerge'].upper() == "YES" or report['ReportMerge'].upper() == "TRUE":
             _tempWorkspace = config["ResultsGDB"]
-            _mergedFeature = "CSVTemp"
+            _mergedFeature = "MergedReport"
             _mergedFeaturePath = os.path.join(_tempWorkspace, _mergedFeature)
 
             if arcpy.Exists(_mergedFeaturePath)==False:
+                print "%s created" % _mergedFeaturePath
                 arcpy.CreateFeatureclass_management(_tempWorkspace, _mergedFeature, "POLYGON", reportLayer, "DISABLED", "DISABLED", spatRef, "", "0", "0", "0")
                 arcpy.Append_management(reportLayer,_mergedFeaturePath, "TEST","","")
                 #arcpy.DeleteField_management(_mergedFeaturePath, ["SHAPE_LENGTH", "SHAPE_AREA"])
@@ -2035,7 +2204,7 @@ def mergeAllReports(reportLayer, report, config):
     except arcpy.ExecuteError:
         line, filename, synerror = trace()
         raise ReportToolsError({
-                    "function": "JoinAndCalc",
+                    "function": "mergeAllReports",
                     "line": line,
                     "filename":  filename,
                     "synerror": synerror,
@@ -2045,7 +2214,7 @@ def mergeAllReports(reportLayer, report, config):
     except:
         line, filename, synerror = trace()
         raise ReportToolsError({
-            "function": "calculate_age_field",
+            "function": "mergeAllReports",
             "line": line,
             "filename":  filename,
             "synerror": synerror,

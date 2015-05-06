@@ -68,7 +68,7 @@ class DataPrep:
  
     def CopyData(self):
         try:
-            print "************ BEGIN copying SDE to Local DB ****************"
+            print "************ BEGIN Data Copy****************"
             # Read the config values and store in local variables then start extraction
             # It all depends on if it can create a GDB, if not, all other processes are bypassed.
             for database in self.databases:
@@ -80,10 +80,14 @@ class DataPrep:
                 self.standaloneFeatures = None
                 self.postExtractGP = None
                 retVal = True
+                             
                 if "GDBPath" in database and "SDEPath" in database:
+                    
+                    #workspaceProp = arcpy.Describe(database["GDBPath"])
                     if (database["GDBPath"].lower()).find(".sde") == -1:
-                        self.start_db =  database["SDEPath"]
-                        self.end_db =  database["GDBPath"]
+                    #if (workspaceProp.workspaceType == "LocalDatabase"):
+                        self.start_db = database["SDEPath"]
+                        self.end_db = database["GDBPath"]
                         self.overWrite = database["Overwrite"]
                         if self._CheckCreateGDBProcess():
                             if "DataSets" in database:
@@ -99,13 +103,13 @@ class DataPrep:
                                     self.standaloneFeatures = database["Tables"]
                                     retVal = self._CopyDataTypeProcess(type="Tables")  
                     else:
-                        print "Sorry, can not copy sde to sde at this time" 
+                        print "The output geodatabase must be a file geodatabase" 
                         retVal = False  
                 if "PostProcesses" in database:
                     if database["PostProcesses"]:
                         self.postExtractGP = database["PostProcesses"]
                         retVal = self._executePostProcess()                                          
-            print "************ END copying SDE to Local DB ****************"
+            print "************ END Data Copy ****************"
             return retVal
         except arcpy.ExecuteError:
             line, filename, synerror = trace()
@@ -116,6 +120,8 @@ class DataPrep:
                 "synerror": synerror,
                 "arcpyError": arcpy.GetMessages(2),
             })
+        except (DataPrepError),e:
+            raise e
         except:
             line, filename, synerror = trace()
             raise DataPrepError({
@@ -206,15 +212,42 @@ class DataPrep:
             #Set workspaces
             arcpy.env.workspace = self.start_db
             wk2 = self.end_db
-            
+            result = {}
             if(self.calledFromApp):
-                for featClass in self.standaloneFeatures:
-                    if featClass.upper().find(".SDE") != -1:
-                        featName = featClass.split('.')[-1]
-                    else:
-                        featName = featClass.split('/')[-1]
-                    arcpy.FeatureClassToFeatureClass_conversion(featClass,wk2,featName)
-                    print "Completed copy on {0}".format(featName) 
+                if isinstance(self.standaloneFeatures,dict): 
+                    for key,featClass in self.standaloneFeatures.items():
+                        if arcpy.Exists(dataset=featClass):
+                            
+                            fcName = os.path.basename(featClass)
+                            if '.' in fcName:
+                                fcSplit = fcName.split('.')
+                                fcName = fcSplit[len(fcSplit) - 1]
+                            
+                            #fcDes = arcpy.Describe(featClass)
+                            #workspace =featClass.replace(featClassBase,"")
+                            #fullName = arcpy.ParseTableName(name=featClassBase,workspace=fcDes.workspace)
+                            #nameList = fullName.split(",")
+                            #databaseName = str(nameList[0].encode('utf-8')).strip()
+                            #ownerName = str(nameList[1].encode('utf-8')).strip()
+                            #fcName = str(nameList[2].encode('utf-8')).strip()
+                           
+                            
+                            fcRes = arcpy.FeatureClassToFeatureClass_conversion(featClass,wk2,fcName)
+                            result[key] = str(fcRes)
+                                
+                            print "Completed copy on {0}".format(fcName)                             
+                        else:
+                            result[key] = featClass
+                        
+                else:
+                    for featClass in self.standaloneFeatures:
+                        if featClass.upper().find(".SDE") != -1:
+                            featName = featClass.split('.')[-1]
+                        else:
+                            featName = featClass.split('/')[-1]
+                        if arcpy.Exists(dataset=featClass):
+                            arcpy.FeatureClassToFeatureClass_conversion(featClass,wk2,featName)
+                        print "Completed copy on {0}".format(featName)                     
             else:
             
                 # if ds passed value exist then this call came from a copy dataset child object request.
@@ -261,9 +294,23 @@ class DataPrep:
                     #Clear memory
                     del dtl
             return True
+        except arcpy.ExecuteError:
+            line, filename, synerror = trace()
+            raise DataPrepError({
+                "function": "CopyData",
+                "line": line,
+                "filename":  filename,
+                "synerror": synerror,
+                "arcpyError": arcpy.GetMessages(2),
+            })
         except:
-            print "Unexpected error copying feature classes:", sys.exc_info()[0]
-            return False
+            line, filename, synerror = trace()
+            raise DataPrepError({
+                "function": "CopyData",
+                "line": line,
+                "filename":  filename,
+                "synerror": synerror,
+        })        
  
     def _CheckChildFeatures(self,ds="",childList="",checkList=""):
          #Handles child features of the datset.  Can either copy all or user defined features
@@ -308,16 +355,19 @@ class DataPrep:
             print "Unexpected error create geodatabase:", sys.exc_info()[0]
             return False
         
+   
     def _executePostProcess(self):
         try:
             print "Running post process GP"
             for process in self.postExtractGP:
                 if process["ToolType"].upper() == "MODEL":
                     arcpy.ImportToolbox(process["ToolPath"])
+                    arcpy.gp.toolbox = process["ToolPath"]
+                    tools = arcpy.ListTools()
                     for tool in process["Tools"]:
-                        if tool in arcpy.ListTools():
+                        if tool in tools:
                             customCode = "arcpy." + tool + "()"
-                            eval(customCode)
+                            print eval(customCode)
                             print "Finished executing model {0}".format(tool)
                 elif process["ToolType"].upper() == "SCRIPT":
                     for tool in process["Tools"]:

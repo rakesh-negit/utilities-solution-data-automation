@@ -82,7 +82,7 @@ class CSVExport:
             for fcs in fc:      
                     
                 outFile = open(self._CSVLocation, 'wb')      
-            
+                print "%s create" % self._CSVLocatio
                 linewriter = csv.writer(outFile, delimiter = ',')
                 
                 fcdescribe = arcpy.Describe(fcs)
@@ -124,6 +124,7 @@ class CSVExport:
                     del row
                     del rows
                 outFile.close() 
+                print "CSV file complete"
             return True
         except arcpy.ExecuteError:
             line, filename, synerror = trace()
