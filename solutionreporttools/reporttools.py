@@ -199,14 +199,17 @@ def create_report_layers_using_config(config):
 
         report_msg = []
         
-        reporting_areas = config['ReportingAreas']
-        if arcpy.Exists(reporting_areas) == False: 
-            raise ReportToolsError({
-                "function": "create_report_layers_using_config",
-                "line": 61,
-                "filename": 'reporttools',
-                "synerror": 'Report data cannot be located'
-            } ) 
+        if 'ReportingAreas' in config:
+            reporting_areas = config['ReportingAreas']
+            reporting_areas_ID_field = config['ReportingAreasIDField']
+            
+            if arcpy.Exists(reporting_areas) == False: 
+                raise ReportToolsError({
+                    "function": "create_report_layers_using_config",
+                    "line": 61,
+                    "filename": 'reporttools',
+                    "synerror": 'Report data cannot be located'
+                } ) 
         if arcpy.Exists(config['SchemaGDB']) == False: 
             raise ReportToolsError({
                 "function": "create_report_layers_using_config",
@@ -249,20 +252,26 @@ def create_report_layers_using_config(config):
                 del datasetPath
                 del layerName
                 if i['Type'].upper()== "JOINCALCANDLOAD":
-                    create_calcload_report(reporting_areas=reporting_areas,
-                                         reporting_areas_ID_field=reporting_areas_ID_field,
-                                         report_params=i,datasources=config)
+                    create_calcload_report(report_params=i,datasources=config)
                 elif i['Type'].upper()== "RECLASS":
-                    reporting_areas_ID_field = config['ReportingAreasIDField']
-
+                    if arcpy.Exists(reporting_areas) == False: 
+                        raise ReportToolsError({
+                            "function": "create_report_layers_using_config",
+                            "line": 61,
+                            "filename": 'reporttools',
+                            "synerror": 'Report data cannot be located'
+                        } )                       
                     report_msg.append(create_reclass_report(reporting_areas=reporting_areas,
                                          reporting_areas_ID_field=reporting_areas_ID_field,
                                          report_params=i,datasources=config))
                 elif i['Type'].upper()== "AVERAGE":
-                 
-
-                    reporting_areas_ID_field = config['ReportingAreasIDField']
-
+                    if arcpy.Exists(reporting_areas) == False: 
+                        raise ReportToolsError({
+                            "function": "create_report_layers_using_config",
+                            "line": 61,
+                            "filename": 'reporttools',
+                            "synerror": 'Report data cannot be located'
+                        } )                      
                     report_msg.append(create_average_report(reporting_areas=reporting_areas,
                                          reporting_areas_ID_field=reporting_areas_ID_field,
                                          report_params=i,datasources=config))
@@ -313,7 +322,7 @@ def create_report_layers_using_config(config):
 
         gc.collect()
 #----------------------------------------------------------------------
-def create_calcload_report(reporting_areas,reporting_areas_ID_field,report_params,datasources):
+def create_calcload_report(report_params,datasources):
 
     filt_layer = None
     reporting_layer = None
@@ -336,7 +345,8 @@ def create_calcload_report(reporting_areas,reporting_areas_ID_field,report_param
         reporting_layer = datasources["Data"][report_params['Data']]
         reporting_layer_id_field = report_params['DataIDField']
         joinInfo = report_params['JoinInfo']
-
+        reporting_areas = joinInfo['FeatureData']
+        reporting_areas_ID_field = joinInfo['FeatureDataIDField']
         field_map = report_params['FieldMap']
 
         sql = report_params['FilterSQL']
