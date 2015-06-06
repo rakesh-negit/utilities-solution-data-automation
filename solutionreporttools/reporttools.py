@@ -617,7 +617,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                                            reporting_areas_ID_field=reporting_areas_ID_field,count_field=count_field)
             #print "at copy_report_data_schema"
             report_copy = copy_report_data_schema(reporting_areas=filt_report_layer,reporting_areas_ID_field=reporting_areas_ID_field,report_schema=report_schema,
-                                                  report_result=report_result,join_layer=pivot_layer,report_output_type=report_output_type, result_fields=reclass_map)
+                                                  report_result=report_result,join_layer=pivot_layer,report_output_type=report_output_type)
 
             #print "at calculate_report_results"
             calculate_report_results(report_result=report_result,  reporting_areas_ID_field=reporting_areas_ID_field,report_copy=report_copy,
@@ -1292,8 +1292,7 @@ def copy_report_data_schema(reporting_areas,
                             report_schema,
                             report_result, 
                             join_layer,
-                            report_output_type,
-                            result_fields):
+                            report_output_type):
 
     _tempWorkspace = None
     _reportCopy = None
@@ -1320,12 +1319,7 @@ def copy_report_data_schema(reporting_areas,
                                                     out_path=_tempWorkspace, 
                                                     out_name=_reportCopy,
                                                     field_mapping=fms)
-        #if not result_fields is None:
-            #for fld in result_fields:
-                #try:
-                    #arcpy.DeleteField_management(in_table=_reportCopy, drop_field=fld)
-                #except:
-                    #pass
+       
         # Process: Join the Areas to the pivot table to get a count by area
         arcpy.JoinField_management(final_report, reporting_areas_ID_field, join_layer, reporting_areas_ID_field, "#")
 
@@ -1709,15 +1703,49 @@ def validate_id_field(reporting_areas,report_ID_field):
         globalIDField = arcpy.ListFields(dataset=reporting_areas,field_type='GlobalID')
         _tempWorkspace = env.scratchGDB
         if len(globalIDField) > 0 and globalIDField[0].name == report_ID_field:
+            desc = arcpy.Describe(value=reporting_areas)
             _globalIDCopy_name = Common.random_string_generator()       
-            globalIDCopy = os.path.join(_tempWorkspace, _globalIDCopy_name)
+            globalIDCopy = os.path.join(_tempWorkspace, _globalIDCopy_name)            
+            reportCopy = arcpy.CreateFeatureclass_management(out_path=_tempWorkspace, 
+                                                out_name=_globalIDCopy_name, 
+                                                geometry_type=desc.shapeType,
+                                                template=reporting_areas,
+                                                has_m = "DISABLED", 
+                                                has_z = "DISABLED", 
+                                                spatial_reference = desc.spatialReference)
+            
+          
 
-            arcpy.FeatureClassToFeatureClass_conversion(reporting_areas, _tempWorkspace, _globalIDCopy_name)
+            #arcpy.FeatureClassToFeatureClass_conversion(reporting_areas, _tempWorkspace, _globalIDCopy_name)
             globalIDFldName = "GLOBALIDCopy_12_1"
             arcpy.AddField_management(in_table=globalIDCopy, field_name=globalIDFldName, field_type="GUID",field_precision= "", field_scale="", field_length="",
                                       field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
-            arcpy.CalculateField_management(globalIDCopy, globalIDFldName, 
-                                            "!" + report_ID_field + "!", "PYTHON_9.3")            
+            
+            fms = arcpy.FieldMappings()
+            reportDataFields = arcpy.ListFields(dataset=reporting_areas)
+            for fld in reportDataFields:
+                if (fld.type <> "OID" and fld.type <> "GlobalID" and fld.type <> "Geometry"):
+                    try:             
+                        if (fld.name <> desc.areaFieldName and fld.name <> desc.lengthFieldName):
+                            fm = arcpy.FieldMap()
+            
+                            fm.addInputField(globalIDCopy, fld.name)
+                            outField=fm.outputField
+                            outField.name=fld.name
+                            fm.outputField=outField          
+                            fms.addFieldMap(fm)          
+                    except:
+                        pass
+                
+            fm.addInputField(globalIDCopy, report_ID_field)
+            outField=fm.outputField
+            outField.name=globalIDFldName
+            fm.outputField=outField          
+            fms.addFieldMap(fm)                  
+            arcpy.Append_management(reporting_areas,globalIDCopy, "NO_TEST",fms, "")
+                        
+            #arcpy.CalculateField_management(globalIDCopy, globalIDFldName, 
+            #                                "!" + report_ID_field + "!", "PYTHON_9.3")            
 
             return {"ReportLayer":globalIDCopy,
                     "IDField": globalIDFldName}
