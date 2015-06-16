@@ -187,12 +187,17 @@ def create_report_layers_using_config(config):
 
         #To handle CSV export, a temp FC is created.  This code just checks and deletes it, if it exist.
         if arcpy.Exists(config["ResultsGDB"]) == False:
+                
             gdbName = os.path.basename(config["ResultsGDB"])
-            path = os.path.dirname(config["ResultsGDB"])           
-            arcpy.CreateFileGDB_management(out_folder_path=path, 
-                                          out_name=gdbName, 
-                                          out_version=None)
-            print "%s created in %s" % (gdbName,path)
+            if not '.sde' in gdbName:
+                path = os.path.dirname(config["ResultsGDB"])       
+                if path == '':
+                    path = os.getcwd()
+                    config["ResultsGDB"] = os.path.join(path,gdbName)
+                arcpy.CreateFileGDB_management(out_folder_path=path, 
+                                              out_name=gdbName, 
+                                              out_version=None)
+                print "%s created in %s" % (gdbName,path)
       
         _TempFC = os.path.join(config["ResultsGDB"] ,"CSVTemp")
         deleteFC([_TempFC])
@@ -202,6 +207,7 @@ def create_report_layers_using_config(config):
         
         if 'ReportingAreas' in config:
             reporting_areas = config['ReportingAreas']
+            
             reporting_areas_ID_field = config['ReportingAreasIDField']
                  
             if arcpy.Exists(reporting_areas) == False: 
@@ -221,7 +227,7 @@ def create_report_layers_using_config(config):
                 "function": "create_report_layers_using_config",
                 "line": 61,
                 "filename": 'reporttools',
-                "synerror": 'Schema GDB is not valid'
+                "synerror": '%s is not valid in the SchemaGDB parameter' % config['SchemaGDB']
             }
         )            
            
@@ -245,6 +251,7 @@ def create_report_layers_using_config(config):
                         }
                         )                             
                 if arcpy.Exists(datasetPath) == False and (datasetName != layerName):
+                  
                     datasetNameSch = os.path.dirname(i['ReportResultSchema']) 
                     layerNameSch =  os.path.basename(i['ReportResultSchema']) 
                     if layerNameSch != datasetNameSch:
@@ -544,12 +551,13 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
             print "Report is missing the ReportOutputType parameter:  type string, values: Overwrite, Append, Update"
             report_output_type = 'Overwrite'
         reporting_areas_filter = None
-        if 'ReportingAreasFilter' in report_params:
+        if 'ReportingAreasFilter' in report_params and report_params['ReportingAreasFilter']  != "":
             filt_report_layer = 'filteredReportingAreas'
             reporting_areas_filter = report_params['ReportingAreasFilter']   
             arcpy.MakeFeatureLayer_management(reporting_areas, filt_report_layer, reporting_areas_filter, "", "")
         else:
             filt_report_layer = reporting_areas
+            reporting_areas_filter = ''
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
         result_exp = report_params['FinalResultExpression']
@@ -1585,20 +1593,13 @@ def calculate_report_results(report_result,
     
         if report_output_type.upper() == "UPDATE":  
            
-            if not delete_append_sql:
-                raise ReportToolsError({
-                    "function": "calculate_report_results",
-                    "line": 1450,
-                    "filename":  'reportTools',
-                    "synerror": 'SQL syntax is not valid for UPDATE'
-                    })                
-            delfromreport = 'deleteFromReport'
             JoinAndCalc(inputDataset=report_result, 
                         inputJoinField=report_ID_field, 
                         joinTable=report_copy, 
                         joinTableJoinField=reporting_areas_ID_field,
                         copyFields=copyFields, 
-                        joinType="KEEP_ALL")
+                        joinType="KEEP_COMMON",
+                        inputFilter=delete_append_sql)
             #arcpy.MakeFeatureLayer_management(in_features=report_result, 
                                              #out_layer=delfromreport, 
                                              #where_clause=delete_append_sql, 
@@ -2017,7 +2018,7 @@ def shapeBasedSpatialJoin(TargetLayer, JoinLayer,JoinResult):
 
         gc.collect()
 #----------------------------------------------------------------------
-def JoinAndCalc(inputDataset, inputJoinField, joinTable, joinTableJoinField,copyFields, joinType="KEEP_ALL"):
+def JoinAndCalc(inputDataset, inputJoinField, joinTable, joinTableJoinField,copyFields, joinType="KEEP_ALL",inputFilter="None"):
 
     inputLayer = None
     joinTableDesc = None
@@ -2030,7 +2031,11 @@ def JoinAndCalc(inputDataset, inputJoinField, joinTable, joinTableJoinField,copy
     try:
 
         inputLayer = "inputLayer"
-        arcpy.MakeFeatureLayer_management (inputDataset, inputLayer)
+        if inputFilter == '':
+            inputFilter = None
+        arcpy.MakeFeatureLayer_management (in_features=inputDataset,
+                                           out_layer=inputLayer,
+                                           where_clause=inputFilter)
 
         joinTableDesc = arcpy.Describe(joinTable)
         joinName = str(joinTableDesc.name)
