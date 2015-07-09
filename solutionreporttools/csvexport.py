@@ -31,27 +31,18 @@ def trace():
     return line, filename, synerror
 class CSVExport:
     _tempWorkspace = None
-    _tempFeature = None
+    _layers = None
     _CSVLocation = None
        
-    def __init__(self, configParams=""):
+    def __init__(self, CSVLocation="", layer=None, workspace = None):
         # Gets the values of where the temp feature class resides and
         # the output location of the CSV.
         try:
-            if configParams and configParams != "":
-                
-                if "ResultsGDB" in configParams:
-                    self._tempWorkspace = configParams["ResultsGDB"]
-                
-                if "CSVOutputLocation" in configParams:
-                    self._CSVLocation = configParams["CSVOutputLocation"]
-                
-                self._tempFeature = "CSVTemp"
-                    
-
-            else:
-                print "Error, no config file path specified."
-                
+        
+            self._tempWorkspace = workspace
+            self._layer = layer   
+            self._CSVLocation = CSVLocation
+                       
         except arcpy.ExecuteError:
             line, filename, synerror = trace()
             raise ReportToolsError({
@@ -78,11 +69,12 @@ class CSVExport:
         try:
             env.workspace = self._tempWorkspace
            
-            fc = arcpy.ListFeatureClasses(self._tempFeature)
-            for fcs in fc:      
-                    
+            #fc = arcpy.ListFeatureClasses(self._layers)
+            # for fcs in self._layer:
+            fcs = self._layer
+            if arcpy.Exists(fcs):    
                 outFile = open(self._CSVLocation, 'wb')      
-                print "%s create" % self._CSVLocatio
+                print "%s create" % self._CSVLocation
                 linewriter = csv.writer(outFile, delimiter = ',')
                 
                 fcdescribe = arcpy.Describe(fcs)

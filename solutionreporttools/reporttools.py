@@ -13,6 +13,7 @@ from dateutil.parser import parse
 from solutionreporttools import dataprep as DataPrep
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
+tempCSVName = "mergedreport"
 #----------------------------------------------------------------------
 def trace():
     """
@@ -41,6 +42,7 @@ def getLayerName(fc):
         fcSplit = fcName.split('.')
         fcName = fcSplit[len(fcSplit) - 1]    
     return fcName
+           
 #----------------------------------------------------------------------
 def reportDataPrep(reportConfig):
     
@@ -185,7 +187,6 @@ def create_report_layers_using_config(config):
     idRes = None
     try:
 
-        #To handle CSV export, a temp FC is created.  This code just checks and deletes it, if it exist.
         if arcpy.Exists(config["ResultsGDB"]) == False:
                 
             gdbName = os.path.basename(config["ResultsGDB"])
@@ -199,7 +200,9 @@ def create_report_layers_using_config(config):
                                               out_version=None)
                 print "%s created in %s" % (gdbName,path)
       
-        _TempFC = os.path.join(config["ResultsGDB"] ,"CSVTemp")
+        #To handle CSV export, a temp FC is created.  This code just checks and deletes it, if it exist.
+                          
+        _TempFC = os.path.join(config["ResultsGDB"], tempCSVName)
         deleteFC([_TempFC])
         reports =  config['Reports']
 
@@ -292,7 +295,9 @@ def create_report_layers_using_config(config):
                     print "Unsupported report type"
 
         # After all the different reports have been run, export a single CSV of results.
-        csvProcess = CSVExport.CSVExport(configParams=config)
+        csvProcess = CSVExport.CSVExport(CSVLocation=config["CSVOutputLocation"], 
+                                         layer=_TempFC, 
+                                         workspace = config["ResultsGDB"])
         report_msg.append(csvProcess.WriteCSV())
 
         if not idRes is None:
@@ -2383,7 +2388,7 @@ def mergeAllReports(reportLayer, report, config):
             print "Report is missing the ReportMerge parameter:  type string, values, True or False"
         if report['ReportMerge'].upper() == "YES" or report['ReportMerge'].upper() == "TRUE":
             _tempWorkspace = config["ResultsGDB"]
-            _mergedFeature = "MergedReport"
+            _mergedFeature = tempCSVName
             _mergedFeaturePath = os.path.join(_tempWorkspace, _mergedFeature)
 
             if arcpy.Exists(_mergedFeaturePath)==False:
