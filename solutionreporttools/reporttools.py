@@ -99,14 +99,23 @@ def reportDataPrep(reportConfig):
 
             for process in reportConfig['PreProcessingTasks']:
                 if process["ToolType"].upper() == "MODEL":
-                    arcpy.ImportToolbox(process["ToolPath"])
-                    arcpy.gp.toolbox = process["ToolPath"]
-                    tools = arcpy.ListTools()
-                    for tool in process["Tools"]:
-                        if tool in tools:
-                            customCode = "arcpy." + tool + "()"
-                            eval(customCode)
-                            print "Finished executing model {0}".format(tool)
+                    if arcpy.Exists(process["ToolPath"]):
+                        arcpy.ImportToolbox(process["ToolPath"])
+                        arcpy.gp.toolbox = process["ToolPath"]
+                        tools = arcpy.ListTools()
+                        for tool in process["Tools"]:
+                            if tool in tools:
+                                customCode = "arcpy." + tool + "()"
+                                eval(customCode)
+                                print "Finished executing model {0}".format(tool)
+                            elif tool + "_" + arcpy.gp.toolbox in tools:
+                                customCode = "arcpy." + tool + "_" + arcpy.gp.toolbox + "()"
+                                eval(customCode)
+                                print "Finished executing model {0}".format(tool)
+                            else:
+                                print "%s was not found, please verify the name" % tool
+                        else:
+                            print "%s was not found, please verify the path" % process["ToolPath"]
                 elif process["ToolType"].upper() == "SCRIPT":
                     for tool in process["Tools"]:
                         scriptPath = process["ToolPath"] + "/" + tool
