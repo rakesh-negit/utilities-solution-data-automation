@@ -1174,7 +1174,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                         "synerror": synerror,
                         "arcpyError": arcpy.GetMessages(2),
                     })
-                reccount = arcpy.GetCount_management(selectLayer)
+                reccount = int(arcpy.GetCount_management(selectLayer)[0])
                 #print "%s records found to match %s" % (field["FieldName"],str(reccount))
                 if reccount > 0 :
 
