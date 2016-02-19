@@ -114,8 +114,8 @@ def reportDataPrep(reportConfig):
                                 print "Finished executing model {0}".format(tool)
                             else:
                                 print "%s was not found, please verify the name" % tool
-                        else:
-                            print "%s was not found, please verify the path" % process["ToolPath"]
+                    else:
+                        print "%s was not found, please verify the path" % process["ToolPath"]
                 elif process["ToolType"].upper() == "SCRIPT":
                     for tool in process["Tools"]:
                         scriptPath = process["ToolPath"] + "/" + tool
