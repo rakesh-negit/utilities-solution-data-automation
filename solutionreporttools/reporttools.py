@@ -101,16 +101,13 @@ def reportDataPrep(reportConfig):
                 if process["ToolType"].upper() == "MODEL":
                     if arcpy.Exists(process["ToolPath"]):
                         arcpy.ImportToolbox(process["ToolPath"])
-                        arcpy.gp.toolbox = process["ToolPath"]
-                        tools = arcpy.ListTools()
+                        arcpy.gp.AddToolbox(process["ToolPath"])                                             
                         for tool in process["Tools"]:
-                            if tool in tools:
-                                customCode = "arcpy." + tool + "()"
-                                eval(customCode)
+                            if hasattr(arcpy, tool):
+                                getattr(arcpy, tool)()
                                 print "Finished executing model {0}".format(tool)
-                            elif tool + "_" + arcpy.gp.toolbox in tools:
-                                customCode = "arcpy." + tool + "_" + arcpy.gp.toolbox + "()"
-                                eval(customCode)
+                            elif hasattr(arcpy.gp, "{}_{}".format(tool, arcpy.gp.toolbox)):
+                                getattr(arcpy.gp, "{}_{}".format(tool, arcpy.gp.toolbox))()
                                 print "Finished executing model {0}".format(tool)
                             else:
                                 print "%s was not found, please verify the name" % tool
