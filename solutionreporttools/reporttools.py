@@ -286,7 +286,7 @@ def create_report_layers_using_config(config):
                     report_msg.append(create_reclass_report(reporting_areas=reporting_areas,
                                          reporting_areas_ID_field=reporting_areas_ID_field,
                                          report_params=i,datasources=config))
-                elif i['Type'].upper()== "AVERAGE":
+                elif i['Type'].upper() in ["AVERAGE", "STATISTIC"]:
                     if arcpy.Exists(reporting_areas) == False:
                         raise ReportToolsError({
                             "function": "create_report_layers_using_config",
@@ -768,24 +768,52 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         if inputCnt == 0:
             pass
         else:
+        
+            if report_params['Type'].upper() == "AVERAGE":
 
-            result = split_average(reporting_areas=reporting_areas, reporting_areas_ID_field=reporting_areas_ID_field,reporting_layer=filt_layer,
-                         reporting_layer_field_map=field_map,code_exp=code_exp,use_arcmap_expression=useArcMapExpression)
+                result = split_average(reporting_areas=reporting_areas,
+                                       reporting_areas_ID_field=reporting_areas_ID_field,
+                                       reporting_layer=filt_layer,
+                                       reporting_layer_field_map=field_map,
+                                       code_exp=code_exp,
+                                       use_arcmap_expression=useArcMapExpression)
+            else:
+                result = split_statistic(reporting_areas=reporting_areas,
+                                         reporting_areas_ID_field=reporting_areas_ID_field,
+                                         reporting_layer=filt_layer,
+                                         reporting_layer_field_map=field_map,
+                                         code_exp=code_exp,
+                                         use_arcmap_expression=useArcMapExpression)
 
             if 'layer' in result:
 
-                report_copy = copy_report_data_schema(reporting_areas=reporting_areas,reporting_areas_ID_field=reporting_areas_ID_field,report_schema=report_schema,
-                                                      report_result=report_result,join_layer=result['layer'],report_output_type=report_output_type)
-
-                report_result = calculate_average_report_results(report_result=report_result,
-                                                reporting_areas_ID_field=reporting_areas_ID_field ,
-                                                report_copy=report_copy,
-                                                field_map=avg_field_map,
-                                                report_date_field=report_date_field,
-                                                report_ID_field=report_ID_field,
-                                                average_field=result['field'],
-                                                reportParam=report_params,
-                                                config=datasources)
+                report_copy = copy_report_data_schema(reporting_areas=reporting_areas,
+                                                      reporting_areas_ID_field=reporting_areas_ID_field,
+                                                      report_schema=report_schema,
+                                                      report_result=report_result,
+                                                      join_layer=result['layer'],
+                                                      report_output_type=report_output_type)
+                                                      
+                if report_params['Type'].upper() == "AVERAGE":
+                    report_result = calculate_average_report_results(report_result=report_result,
+                                                                     reporting_areas_ID_field=reporting_areas_ID_field,
+                                                                     report_copy=report_copy,
+                                                                     field_map=avg_field_map,
+                                                                     report_date_field=report_date_field,
+                                                                     report_ID_field=report_ID_field,
+                                                                     average_field=result['field'],
+                                                                     reportParam=report_params,
+                                                                     config=datasources)
+                else:
+                    report_result = calculate_statistic_report_results(report_result=report_result,
+                                                                       reporting_areas_ID_field=reporting_areas_ID_field,
+                                                                       report_copy=report_copy,
+                                                                       field_map=avg_field_map,
+                                                                       report_date_field=report_date_field,
+                                                                       report_ID_field=report_ID_field,
+                                                                       statistic_field=result['field'],
+                                                                       reportParam=report_params,
+                                                                       config=datasources)
                 print "%s was created or updated" % report_result
                 deleteFC(in_datasets = [report_copy,result['layer']])
 
@@ -1066,6 +1094,69 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "split_average",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:
+        _tempWorkspace = None
+        _intersect  = None
+
+        del _tempWorkspace
+        del _intersect
+
+        gc.collect()
+#----------------------------------------------------------------------
+
+def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, reporting_layer_field_map, code_exp, use_arcmap_expression=False):
+    _tempWorkspace = None
+    _intersect  = None
+    sumstats = None
+    statsfield = None
+    try:
+        _tempWorkspace = env.scratchGDB
+
+        _intersect = os.path.join(_tempWorkspace, Common.random_string_generator())
+        sumstats = os.path.join(_tempWorkspace, Common.random_string_generator())
+
+        # Process: Intersect Reporting Areas with Reporting Data to split them for accurate measurements
+        arcpy.Intersect_analysis(in_features=[reporting_areas, reporting_layer], out_feature_class=_intersect, join_attributes="ALL", cluster_tolerance="#", output_type="INPUT")
+
+        statsfield="statsfield"
+        # Process: Add a field and calculate it with the groupings required for reporting.
+        arcpy.AddField_management(in_table=_intersect, field_name=statsfield, field_type="LONG",field_precision= "", field_scale="", field_length="",
+                                  field_alias="",field_is_nullable= "NULLABLE", field_is_required="NON_REQUIRED", field_domain="")
+
+        if use_arcmap_expression:
+
+            arcpy.CalculateField_management(in_table=_intersect, field=statsfield,
+                                           expression=code_exp,
+                                           expression_type='PYTHON_9.3',
+                                           code_block=None)
+        else:
+            calc_field(inputDataset=_intersect,field_map=reporting_layer_field_map,code_exp=code_exp,result_field=statsfield)
+        
+        statistics_fields = [[statsfield, s] for s in ["SUM", "MEAN", "MIN", "MAX", "RANGE", "STD", "COUNT", "FIRST", "LAST"]]
+        arcpy.Statistics_analysis(_intersect,out_table=sumstats,statistics_fields=statistics_fields,case_field=reporting_areas_ID_field)
+
+        deleteFC([_intersect])
+        return {"layer":sumstats,"field":statsfield}
+
+    except arcpy.ExecuteError:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+                    "function": "split_statistic",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                    "arcpyError": arcpy.GetMessages(2),
+                                    }
+                                    )
+    except:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+                    "function": "split_statistics",
                     "line": line,
                     "filename":  filename,
                     "synerror": synerror,
@@ -1485,6 +1576,102 @@ def calculate_average_report_results(report_result, reporting_areas_ID_field,rep
         line, filename, synerror = trace()
         raise ReportToolsError({
                     "function": "calculate_average_report_results",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                                    }
+                                    )
+    finally:
+        fields = None
+        strOnlineTime = None
+        search_fields = None
+        newrow = None
+
+        del fields
+        del strOnlineTime
+        del search_fields
+        del newrow
+
+        gc.collect()
+
+
+#----------------------------------------------------------------------
+def calculate_statistic_report_results(report_result, reporting_areas_ID_field, report_copy, field_map,
+                                       report_date_field, report_ID_field, statistic_field, reportParam, config):
+    fields = None
+    strOnlineTime = None
+    search_fields = None
+    newrow = None
+    try: 
+
+        def dictLookup(expr, d):
+            """replace values in string surrounded in {} with a dictionary key,value pair
+               attempt to evaluate expression
+               expr - str to replace
+               d - dict
+            """
+            for k,v in d.items():
+                expr = expr.replace("{{{}}}".format(k), str(Common.noneToValue(v, 0.0)))
+            try:    
+                return eval(expr)
+            except:
+                line, filename, synerror = trace()
+                raise ReportToolsError({
+                        "function": "dictLookup",
+                        "line": line,
+                        "filename":  filename,
+                        "synerror": synerror,
+                        "expr": expr})             
+        
+        # Summary statistics creates a table with fields named {statistic}_{fname}, e.g., "MEAN_age"
+        stats = ["SUM", "MEAN", "MIN", "MAX", "RANGE", "STD", "COUNT", "FIRST", "LAST"]
+        stats_fields = ["{}_{}".format(s, statistic_field) for s in stats] + [reporting_areas_ID_field, "SHAPE@"]
+        keys = stats + ["ID", "SHAPE"]
+        
+        # srows is a list of dictionaries mapping statistics to that row's field value
+        srows = [{s:r for s,r in zip(keys, row)} for row in arcpy.da.SearchCursor(report_copy, stats_fields)]
+
+        #strOnlineTime = Common.online_time_to_string(Common.local_time_to_online(),dateTimeFormat)
+        strLocalTime = datetime.datetime.now().strftime(dateTimeFormat)               
+
+        fields = [fld['FieldName'] for fld in field_map]
+        fields.append(report_ID_field)
+        fields.append(report_date_field)
+        fields.append("SHAPE@")
+        
+        with arcpy.da.InsertCursor(report_result, fields) as irows:            
+            for row in srows:
+                newrow = []
+                for fld in field_map:
+                    try:                        
+                        newrow.append(dictLookup(fld["Expression"], row))                        
+                    except:
+                        newrow.append(None)
+                newrow.append(row["ID"])
+                newrow.append(strLocalTime)
+                newrow.append(row["SHAPE"])
+
+                irows.insertRow(tuple(newrow))
+
+
+        # The current recordset that is completed, send it to a merged feature for CSV export process layer.
+        mergeAllReports(reportLayer=report_result, report=reportParam, config=config)
+
+        return report_result
+    except arcpy.ExecuteError:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+                    "function": "calculate_statistic_report_results",
+                    "line": line,
+                    "filename":  filename,
+                    "synerror": synerror,
+                    "arcpyError": arcpy.GetMessages(2),
+                                    }
+                                    )
+    except:
+        line, filename, synerror = trace()
+        raise ReportToolsError({
+                    "function": "calculate_statistic_report_results",
                     "line": line,
                     "filename":  filename,
                     "synerror": synerror,
