@@ -33,16 +33,16 @@ class CSVExport:
     _tempWorkspace = None
     _layers = None
     _CSVLocation = None
-       
+
     def __init__(self, CSVLocation="", layer=None, workspace = None):
         # Gets the values of where the temp feature class resides and
         # the output location of the CSV.
         try:
-        
+
             self._tempWorkspace = workspace
-            self._layer = layer   
+            self._layer = layer
             self._CSVLocation = CSVLocation
-                       
+
         except arcpy.ExecuteError:
             line, filename, synerror = trace()
             raise ReportToolsError({
@@ -62,60 +62,36 @@ class CSVExport:
                 "synerror": synerror,
             }
             )
-          
-        
+
+
     def WriteCSV(self):
         # This function writes the CSV. It writes the header then the rows. This script omits the SHAPE fields.
         try:
             env.workspace = self._tempWorkspace
-           
+
             #fc = arcpy.ListFeatureClasses(self._layers)
             # for fcs in self._layer:
             fcs = self._layer
-            if arcpy.Exists(fcs):    
-                outFile = open(self._CSVLocation, 'wb')      
-                print "%s create" % self._CSVLocation
-                linewriter = csv.writer(outFile, delimiter = ',')
-                
-                fcdescribe = arcpy.Describe(fcs)
-                flds = fcdescribe.Fields
-        
-                header = []
-                resFields = []
-                if hasattr(fcdescribe, 'areaFieldName'):
-                    resFields.append(fcdescribe.areaFieldName)
-                if hasattr(fcdescribe, 'lengthFieldName'):
-                    resFields.append(fcdescribe.lengthFieldName)
-                if hasattr(fcdescribe, 'shapeFieldName'):
-                    resFields.append(fcdescribe.shapeFieldName)                
-                
-                fldLst = []
-                for fld in flds:
-                    value = fld.AliasName
-                    #if value.upper() == 'SHAPE':
-                    if (fld.name in resFields):
-                        pass
-                    else:
-                        fullHeader = value
-                        header.append(fullHeader)
-                        fldLst.append(fld.name)
-                linewriter.writerow(header)
-               
-                with arcpy.da.SearchCursor(fcs,fldLst) as rows:
-                    for row in rows:
-                        line = []
-                        for i in range(0,len(fldLst)):
-                                           
-                            value = row[i]
-                            
-                            line.append(value)
-                    
-                        linewriter.writerow([s.encode('utf8') if isinstance(s,unicode) else s for s in line])
-                    del line
-                   
-                    del row
-                    del rows
-                outFile.close() 
+            if arcpy.Exists(fcs):
+                with open(self._CSVLocation, 'wb') as outFile:
+                    print "%s create" % self._CSVLocation
+                    linewriter = csv.writer(outFile, delimiter = ',')
+
+                    fcdescribe = arcpy.Describe(fcs)
+                    flds = fcdescribe.Fields
+
+                    # skip shape fields and derivatives
+                    attrs = ("areaFieldName", "lengthFieldName", "shapeFieldName")
+                    resFields = [getattr(fcdescribe, attr) for attr in attrs
+                                    if hasattr(fcdescribe, attr)]
+
+                    header,fldLst = zip(*((fld.AliasName, fld.name) for fld in flds
+                                            if fld.name not in resFields))
+
+                    linewriter.writerow([h.encode('utf8') if isinstance(h, unicode) else h for h in header])
+                    linewriter.writerows([[r.encode('utf8') if isinstance(r, unicode) else r for r in row]
+                                            for row in arcpy.da.SearchCursor(fcs, fldLst)])
+
                 print "CSV file complete"
             return True
         except arcpy.ExecuteError:
