@@ -101,7 +101,7 @@ def reportDataPrep(reportConfig):
                 if process["ToolType"].upper() == "MODEL":
                     if arcpy.Exists(process["ToolPath"]):
                         arcpy.ImportToolbox(process["ToolPath"])
-                        arcpy.gp.AddToolbox(process["ToolPath"])                                             
+                        arcpy.gp.AddToolbox(process["ToolPath"])
                         for tool in process["Tools"]:
                             if hasattr(arcpy, tool):
                                 getattr(arcpy, tool)()
@@ -768,7 +768,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         if inputCnt == 0:
             pass
         else:
-        
+
             if report_params['Type'].upper() == "AVERAGE":
 
                 result = split_average(reporting_areas=reporting_areas,
@@ -793,7 +793,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
                                                       report_result=report_result,
                                                       join_layer=result['layer'],
                                                       report_output_type=report_output_type)
-                                                      
+
                 if report_params['Type'].upper() == "AVERAGE":
                     report_result = calculate_average_report_results(report_result=report_result,
                                                                      reporting_areas_ID_field=reporting_areas_ID_field,
@@ -977,10 +977,17 @@ def calculate_load_results(feature_data,
                 for row in scursor:
                     new_row=list(row)
                     if datefld > -1 :
-                        dt = parse(new_row[datefld])
-                        onlTm = Common.local_time_to_online(dt)
-                        timeStr = Common.online_time_to_string(onlTm,dateTimeFormat)
-                        new_row[datefld] = timeStr
+                        try:
+                            if isinstance(new_row[datefld],basestring):
+                                dt = parse(new_row[datefld])
+                            else:
+                                dt = new_row[datefld]
+
+                            onlTm = Common.local_time_to_online(dt)
+                            timeStr = Common.online_time_to_string(onlTm,dateTimeFormat)
+                            new_row[datefld] = timeStr
+                        except:
+                            new_row[datefld] = strOnlineTime
                     elif report_date_field != '':
                         new_row.append(strOnlineTime)
                     icursor.insertRow(new_row)
@@ -1136,7 +1143,7 @@ def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, 
                                            code_block=None)
         else:
             calc_field(inputDataset=_intersect,field_map=reporting_layer_field_map,code_exp=code_exp,result_field=statsfield)
-        
+
         statistics_fields = [[statsfield, s] for s in ["SUM", "MEAN", "MIN", "MAX", "RANGE", "STD", "COUNT", "FIRST", "LAST"]]
         arcpy.Statistics_analysis(_intersect,out_table=sumstats,statistics_fields=statistics_fields,case_field=reporting_areas_ID_field)
 
@@ -1602,7 +1609,7 @@ def calculate_statistic_report_results(report_result, reporting_areas_ID_field, 
     strOnlineTime = None
     search_fields = None
     newrow = None
-    try: 
+    try:
 
         def dictLookup(expr, d):
             """replace values in string surrounded in {} with a dictionary key,value pair
@@ -1612,7 +1619,7 @@ def calculate_statistic_report_results(report_result, reporting_areas_ID_field, 
             """
             for k,v in d.items():
                 expr = expr.replace("{{{}}}".format(k), str(Common.noneToValue(v, 0.0)))
-            try:    
+            try:
                 return eval(expr)
             except:
                 line, filename, synerror = trace()
@@ -1621,30 +1628,30 @@ def calculate_statistic_report_results(report_result, reporting_areas_ID_field, 
                         "line": line,
                         "filename":  filename,
                         "synerror": synerror,
-                        "expr": expr})             
-        
+                        "expr": expr})
+
         # Summary statistics creates a table with fields named {statistic}_{fname}, e.g., "MEAN_age"
         stats = ["SUM", "MEAN", "MIN", "MAX", "RANGE", "STD", "COUNT", "FIRST", "LAST"]
         stats_fields = ["{}_{}".format(s, statistic_field) for s in stats] + [reporting_areas_ID_field, "SHAPE@"]
         keys = stats + ["ID", "SHAPE"]
-        
+
         # srows is a list of dictionaries mapping statistics to that row's field value
         srows = [{s:r for s,r in zip(keys, row)} for row in arcpy.da.SearchCursor(report_copy, stats_fields)]
 
         #strOnlineTime = Common.online_time_to_string(Common.local_time_to_online(),dateTimeFormat)
-        strLocalTime = datetime.datetime.now().strftime(dateTimeFormat)               
+        strLocalTime = datetime.datetime.now().strftime(dateTimeFormat)
 
         fields = [fld['FieldName'] for fld in field_map]
         fields.append(report_ID_field)
         fields.append(report_date_field)
         fields.append("SHAPE@")
-        
-        with arcpy.da.InsertCursor(report_result, fields) as irows:            
+
+        with arcpy.da.InsertCursor(report_result, fields) as irows:
             for row in srows:
                 newrow = []
                 for fld in field_map:
-                    try:                        
-                        newrow.append(dictLookup(fld["Expression"], row))                        
+                    try:
+                        newrow.append(dictLookup(fld["Expression"], row))
                     except:
                         newrow.append(None)
                 newrow.append(row["ID"])
