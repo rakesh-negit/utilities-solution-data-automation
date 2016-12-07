@@ -1,6 +1,5 @@
 import datetime
 import os
-import common as Common
 import arcpy
 from arcpy import env
 from copy import deepcopy
@@ -11,6 +10,9 @@ import csvexport as CSVExport
 import sys
 from dateutil.parser import parse
 from . import dataprep as DataPrep
+from . import common as Common
+from . import gptools
+
 import subprocess
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
@@ -536,6 +538,8 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
 
         count_field = report_params['CountField']
         reclass_map = report_params['ReclassMap']
+        adjust_count = report_params.get("AdjustCountField", False)
+        keep_largest = report_params.get("OnlyKeepLargest", False)
         if 'ReclassType' in report_params:
             reclass_type = report_params['ReclassType']
         else:
@@ -630,7 +634,9 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                                              classified_layer_field_name = classified_layer_field_name,
                                              count_field_name=count_field,
                                              use_arcmap_expression=useArcMapExpression,
-                                             reclass_type = reclass_type)
+                                             reclass_type = reclass_type,
+                                             adjust_count=adjust_count,
+                                             keep_largest=keep_largest)
 
             #print "at classified_pivot"
             pivot_layer = classified_pivot(classified_layer=classified_layer, classified_layer_field_name=classified_layer_field_name,
@@ -1181,7 +1187,8 @@ def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, 
 
 #----------------------------------------------------------------------
 def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name,
-                  count_field_name,use_arcmap_expression=False,reclass_type='split'):
+                  count_field_name,use_arcmap_expression=False,reclass_type='split',
+                  adjust_count=False,keep_largest=False):
 
     _tempWorkspace = None
     _intersect = None
@@ -1202,7 +1209,14 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
             shapeBasedSpatialJoin(TargetLayer=reporting_layer, JoinLayer=reporting_areas, JoinResult=_intersect)
         else:
             # Process: Intersect Reporting Areas with Reporting Data to split them for accurate measurements
-            arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
+            gptools.speedyIntersect(fcToSplit=reporting_layer,
+                                    splitFC=reporting_areas,
+                                    fieldsToAssign=field_map,
+                                    countField=count_field_name,
+                                    adjustCountOnSplit=adjust_count,
+                                    onlyKeepLargest=keep_largest,
+                                    outputFC=_intersect)
+            # arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
         # Process: Add a field and calculate it with the groupings required for reporting. .
         # Process: Create Reclass Feature Class
         desc = arcpy.Describe(_intersect)
