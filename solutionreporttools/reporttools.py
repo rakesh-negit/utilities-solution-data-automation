@@ -10,7 +10,8 @@ import time
 import csvexport as CSVExport
 import sys
 from dateutil.parser import parse
-from solutionreporttools import dataprep as DataPrep
+from . import dataprep as DataPrep
+import subprocess
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
 tempCSVName = "mergedreport"
@@ -1920,9 +1921,10 @@ def validate_id_field(reporting_areas,report_ID_field):
 
         OIDField = arcpy.ListFields(dataset=reporting_areas,field_type='OID')
         if len(OIDField) > 0 and OIDField[0].name == report_ID_field:
+            line, filename, synerror = trace()
             raise ReportToolsError({
                 "function": "validate_id_field",
-                "line": 1663,
+                "line": line,
                 "filename":  filename,
                 "synerror": "OBJECTID cannot be used for ID field",
             })
