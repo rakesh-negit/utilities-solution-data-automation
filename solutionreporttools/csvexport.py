@@ -6,7 +6,7 @@
     @description: Class is used to export a feature into CSV using field alias
     @requirements: Python 2.7.x, ArcGIS 10.2
     @copyright: Esri, 2015
-    @originial source of script is from http://mappatondo.blogspot.com/2012/10/this-is-my-python-way-to-export-feature.html with modifications
+    @original source of script is from http://mappatondo.blogspot.com/2012/10/this-is-my-python-way-to-export-feature.html with modifications
 """
 import sys, arcpy, csv
 from arcpy import env
