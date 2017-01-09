@@ -529,7 +529,6 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                  )
         reporting_layer = datasources["Data"][report_params['Data']]
 
-
         sql = report_params['FilterSQL']
 
 
