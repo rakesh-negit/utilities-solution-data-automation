@@ -1,6 +1,5 @@
 import datetime
 import os
-import common as Common
 import arcpy
 from arcpy import env
 from copy import deepcopy
@@ -10,7 +9,11 @@ import time
 import csvexport as CSVExport
 import sys
 from dateutil.parser import parse
-from solutionreporttools import dataprep as DataPrep
+from . import dataprep as DataPrep
+from . import common as Common
+from . import gptools
+
+import subprocess
 
 dateTimeFormat = '%Y-%m-%d %H:%M'
 tempCSVName = "mergedreport"
@@ -525,16 +528,19 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                 }
                  )
         reporting_layer = datasources["Data"][report_params['Data']]
-        if 'FieldMap' in report_params:
-            field_map = report_params['FieldMap']
-        else:
-            field_map = []
+
 
         sql = report_params['FilterSQL']
 
 
         count_field = report_params['CountField']
         reclass_map = report_params['ReclassMap']
+        adjust_count = report_params.get("AdjustCountField", False)
+        if isinstance(adjust_count,str):
+            if adjust_count.upper() == 'TRUE':
+                adjust_count = True
+            else:
+                adjust_count = False
         if 'ReclassType' in report_params:
             reclass_type = report_params['ReclassType']
         else:
@@ -549,6 +555,11 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
             }
                                    )
         report_result = os.path.join(datasources["ResultsGDB"], report_params['ReportResult'])
+
+        if 'FieldMap' in report_params:
+            field_map = report_params['FieldMap']
+        else:
+            field_map = []
 
         #if not os.path.isabs(report_result):
             #report_result =os.path.abspath( report_result)
@@ -629,7 +640,8 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                                              classified_layer_field_name = classified_layer_field_name,
                                              count_field_name=count_field,
                                              use_arcmap_expression=useArcMapExpression,
-                                             reclass_type = reclass_type)
+                                             reclass_type = reclass_type,
+                                             adjust_count=adjust_count)
 
             #print "at classified_pivot"
             pivot_layer = classified_pivot(classified_layer=classified_layer, classified_layer_field_name=classified_layer_field_name,
@@ -748,6 +760,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         else:
             print "Report is missing the ReportOutputType parameter:  type string, values: Overwrite, Append, Update"
             report_output_type = 'Overwrite'
+
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
 
@@ -757,6 +770,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
             useArcMapExpression = report_params['UseArcMapExpression']
         else:
             useArcMapExpression = False
+        adjust_count = report_params.get("AdjustCountField", False)
 
         if sql == '' or sql is None or sql == '1=1' or sql == '1==1':
             filt_layer = reporting_layer
@@ -770,20 +784,25 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
         else:
 
             if report_params['Type'].upper() == "AVERAGE":
-
+                'If we want Speedy Intersect to adjust all the average fields, we need to enhance it to support multi count fields'
                 result = split_average(reporting_areas=reporting_areas,
                                        reporting_areas_ID_field=reporting_areas_ID_field,
                                        reporting_layer=filt_layer,
                                        reporting_layer_field_map=field_map,
                                        code_exp=code_exp,
-                                       use_arcmap_expression=useArcMapExpression)
+                                       use_arcmap_expression=useArcMapExpression,
+                                       adjust_count=False,
+                                       count_field_name='')
             else:
+                'If we want Speedy Intersect to adjust all the average fields, we need to enhance it to support multi count fields'
                 result = split_statistic(reporting_areas=reporting_areas,
                                          reporting_areas_ID_field=reporting_areas_ID_field,
                                          reporting_layer=filt_layer,
                                          reporting_layer_field_map=field_map,
                                          code_exp=code_exp,
-                                         use_arcmap_expression=useArcMapExpression)
+                                         use_arcmap_expression=useArcMapExpression,
+                                         adjust_count=False,
+                                         count_field_name='')
 
             if 'layer' in result:
 
@@ -1054,7 +1073,7 @@ def calculate_load_results(feature_data,
         del strOnlineTime
         gc.collect()
 #----------------------------------------------------------------------
-def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, reporting_layer_field_map,code_exp,use_arcmap_expression=False):
+def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, reporting_layer_field_map,code_exp,use_arcmap_expression=False,adjust_count=False,count_field_name=''):
     _tempWorkspace = None
     _intersect  = None
     sumstats = None
@@ -1066,7 +1085,14 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         sumstats = os.path.join(_tempWorkspace ,Common.random_string_generator())
 
         # Process: Intersect Reporting Areas with Reporting Data to split them for accurate measurements
-        arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
+        #arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
+        count_field_adjust = count_field_name if adjust_count == True else None
+        gptools.speedyIntersect(fcToSplit=reporting_layer,
+                                splitFC=reporting_areas,
+                                fieldsToAssign=[reporting_areas_ID_field],
+                                countField=count_field_adjust,
+                                onlyKeepLargest=False,
+                                outputFC=_intersect)
 
         age_field="statsfield"
         # Process: Add a field and calculate it with the groupings required for reporting.
@@ -1116,7 +1142,7 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         gc.collect()
 #----------------------------------------------------------------------
 
-def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, reporting_layer_field_map, code_exp, use_arcmap_expression=False):
+def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, reporting_layer_field_map, code_exp, use_arcmap_expression=False,adjust_count=False,count_field_name=''):
     _tempWorkspace = None
     _intersect  = None
     sumstats = None
@@ -1128,7 +1154,14 @@ def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, 
         sumstats = os.path.join(_tempWorkspace, Common.random_string_generator())
 
         # Process: Intersect Reporting Areas with Reporting Data to split them for accurate measurements
-        arcpy.Intersect_analysis(in_features=[reporting_areas, reporting_layer], out_feature_class=_intersect, join_attributes="ALL", cluster_tolerance="#", output_type="INPUT")
+        #arcpy.Intersect_analysis(in_features=[reporting_areas, reporting_layer], out_feature_class=_intersect, join_attributes="ALL", cluster_tolerance="#", output_type="INPUT")
+        count_field_adjust = count_field_name if adjust_count == True else None
+        gptools.speedyIntersect(fcToSplit=reporting_layer,
+                                splitFC=reporting_areas,
+                                fieldsToAssign=[reporting_areas_ID_field],
+                                countField=count_field_adjust,
+                                onlyKeepLargest=False,
+                                outputFC=_intersect)
 
         statsfield="statsfield"
         # Process: Add a field and calculate it with the groupings required for reporting.
@@ -1180,7 +1213,8 @@ def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, 
 
 #----------------------------------------------------------------------
 def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name,
-                  count_field_name,use_arcmap_expression=False,reclass_type='split'):
+                  count_field_name,use_arcmap_expression=False,reclass_type='split',
+                  adjust_count=False):
 
     _tempWorkspace = None
     _intersect = None
@@ -1198,10 +1232,27 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
         reclassLayer = os.path.join(_tempWorkspace, _unique_name)
 
         if reclass_type == 'single':
-            shapeBasedSpatialJoin(TargetLayer=reporting_layer, JoinLayer=reporting_areas, JoinResult=_intersect)
+            keep_largest = True
+            #shapeBasedSpatialJoin(TargetLayer=reporting_layer, JoinLayer=reporting_areas, JoinResult=_intersect)
+            count_field_adjust = count_field_name if adjust_count == True else None
+            gptools.speedyIntersect(fcToSplit=reporting_layer,
+                                    splitFC=reporting_areas,
+                                    fieldsToAssign=[reporting_areas_ID_field],
+                                    countField=count_field_adjust,
+                                    onlyKeepLargest=keep_largest,
+                                    outputFC=_intersect)
         else:
+            keep_largest = False
+
             # Process: Intersect Reporting Areas with Reporting Data to split them for accurate measurements
-            arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
+            count_field_adjust = count_field_name if adjust_count == True else None
+            gptools.speedyIntersect(fcToSplit=reporting_layer,
+                                    splitFC=reporting_areas,
+                                    fieldsToAssign=[reporting_areas_ID_field],
+                                    countField=count_field_adjust,
+                                    onlyKeepLargest=keep_largest,
+                                    outputFC=_intersect)
+            # arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
         # Process: Add a field and calculate it with the groupings required for reporting. .
         # Process: Create Reclass Feature Class
         desc = arcpy.Describe(_intersect)
@@ -1272,7 +1323,6 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                 reccount = int(arcpy.GetCount_management(selectLayer)[0])
                 #print "%s records found to match %s" % (field["FieldName"],str(reccount))
                 if reccount > 0 :
-
                     with arcpy.da.InsertCursor(reclassLayer, reclassFlds) as irows:
                         with arcpy.da.SearchCursor(selectLayer, flds) as srows:
                             for row in srows:
@@ -1280,7 +1330,6 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                                     irows.insertRow((row[len(flds) - 3],row[len(flds) - 2],field["FieldName"],row[len(flds) - 1]))
                                 else:
                                     irows.insertRow((row[len(flds) - 2],row[len(flds) - 1],field["FieldName"]))
-
                                 del row
                         del srows
 
@@ -1920,9 +1969,10 @@ def validate_id_field(reporting_areas,report_ID_field):
 
         OIDField = arcpy.ListFields(dataset=reporting_areas,field_type='OID')
         if len(OIDField) > 0 and OIDField[0].name == report_ID_field:
+            line, filename, synerror = trace()
             raise ReportToolsError({
                 "function": "validate_id_field",
-                "line": 1663,
+                "line": line,
                 "filename":  filename,
                 "synerror": "OBJECTID cannot be used for ID field",
             })

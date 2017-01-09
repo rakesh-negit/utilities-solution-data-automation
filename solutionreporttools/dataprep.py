@@ -3,10 +3,12 @@
     @contact: ArcGISTeamUtilities@esri.com
     @company: Esri
     @version: 1.0
-    @description: Used to prep data for reporting and other geoprocessing task by copying datasets from enterprise to local geodatabases.
+    @description: Used to prep data for reporting and other geoprocessing task by copying datasets from enterprise to
+                  local geodatabases.
     @requirements: Python 2.7.x, ArcGIS 10.2
     @copyright: Esri, 2015
-    @Usage: temp = DataPrep.DataPrep(configFilePath="path to config file")  to intialize(each of the below can be called independently)
+    @Usage: temp = DataPrep.DataPrep(configFilePath="path to config file") to initialize
+            (each of the below can be called independently)
             temp.CopyData()
             This can also be called from a different application.  Just need to pass in the config as a DICT object
 """
