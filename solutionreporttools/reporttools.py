@@ -571,6 +571,13 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
         else:
             print "Report is missing the ReportOutputType parameter:  type string, values: Overwrite, Append, Update"
             report_output_type = 'Overwrite'
+        if 'ReportAreasOverlap' in report_params:
+            report_areas_overlap = report_params['ReportAreasOverlap']
+
+        else:
+            print "Report is missing the ReportAreasOverlap parameter:  type string, values: True, False"
+            report_areas_overlap = True
+
         reporting_areas_filter = None
         if 'ReportingAreasFilter' in report_params and report_params['ReportingAreasFilter']  != "":
             filt_report_layer = 'filteredReportingAreas'
@@ -640,7 +647,8 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                                              count_field_name=count_field,
                                              use_arcmap_expression=useArcMapExpression,
                                              reclass_type = reclass_type,
-                                             adjust_count=adjust_count)
+                                             adjust_count=adjust_count,
+                                             report_areas_overlap=report_areas_overlap)
 
             #print "at classified_pivot"
             pivot_layer = classified_pivot(classified_layer=classified_layer, classified_layer_field_name=classified_layer_field_name,
@@ -760,6 +768,13 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
             print "Report is missing the ReportOutputType parameter:  type string, values: Overwrite, Append, Update"
             report_output_type = 'Overwrite'
 
+        if 'ReportAreasOverlap' in report_params:
+            report_areas_overlap = report_params['ReportAreasOverlap']
+
+        else:
+            print "Report is missing the ReportAreasOverlap parameter:  type string, values: True, False"
+            report_areas_overlap = True
+
         report_date_field = report_params['ReportDateField']
         report_ID_field = report_params['ReportIDField']
 
@@ -791,7 +806,8 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
                                        code_exp=code_exp,
                                        use_arcmap_expression=useArcMapExpression,
                                        adjust_count=False,
-                                       count_field_name='')
+                                       count_field_name='',
+                                       report_areas_overlap=report_areas_overlap)
             else:
                 'If we want Speedy Intersect to adjust all the average fields, we need to enhance it to support multi count fields'
                 result = split_statistic(reporting_areas=reporting_areas,
@@ -801,7 +817,8 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
                                          code_exp=code_exp,
                                          use_arcmap_expression=useArcMapExpression,
                                          adjust_count=False,
-                                         count_field_name='')
+                                         count_field_name='',
+                                         report_areas_overlap=report_areas_overlap)
 
             if 'layer' in result:
 
@@ -1072,7 +1089,15 @@ def calculate_load_results(feature_data,
         del strOnlineTime
         gc.collect()
 #----------------------------------------------------------------------
-def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, reporting_layer_field_map,code_exp,use_arcmap_expression=False,adjust_count=False,count_field_name=''):
+def split_average(reporting_areas,
+                  reporting_areas_ID_field,
+                  reporting_layer,
+                  reporting_layer_field_map,
+                  code_exp,
+                  use_arcmap_expression=False,
+                  adjust_count=False,
+                  count_field_name='',
+                  report_areas_overlap = True):
     _tempWorkspace = None
     _intersect  = None
     sumstats = None
@@ -1091,7 +1116,8 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
                                 fieldsToAssign=[reporting_areas_ID_field],
                                 countField=count_field_adjust,
                                 onlyKeepLargest=False,
-                                outputFC=_intersect)
+                                outputFC=_intersect,
+                                report_areas_overlap=report_areas_overlap)
 
         age_field="statsfield"
         # Process: Add a field and calculate it with the groupings required for reporting.
@@ -1141,7 +1167,15 @@ def split_average(reporting_areas, reporting_areas_ID_field,reporting_layer, rep
         gc.collect()
 #----------------------------------------------------------------------
 
-def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, reporting_layer_field_map, code_exp, use_arcmap_expression=False,adjust_count=False,count_field_name=''):
+def split_statistic(reporting_areas,
+                    reporting_areas_ID_field,
+                    reporting_layer,
+                    reporting_layer_field_map,
+                    code_exp,
+                    use_arcmap_expression=False,
+                    adjust_count=False,
+                    count_field_name='',
+                    report_areas_overlap=True):
     _tempWorkspace = None
     _intersect  = None
     sumstats = None
@@ -1160,7 +1194,8 @@ def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, 
                                 fieldsToAssign=[reporting_areas_ID_field],
                                 countField=count_field_adjust,
                                 onlyKeepLargest=False,
-                                outputFC=_intersect)
+                                outputFC=_intersect,
+                                report_areas_overlap=report_areas_overlap)
 
         statsfield="statsfield"
         # Process: Add a field and calculate it with the groupings required for reporting.
@@ -1213,7 +1248,8 @@ def split_statistic(reporting_areas, reporting_areas_ID_field, reporting_layer, 
 #----------------------------------------------------------------------
 def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, field_map,reclass_map,classified_layer_field_name,
                   count_field_name,use_arcmap_expression=False,reclass_type='split',
-                  adjust_count=False):
+                  adjust_count=False,
+                  report_areas_overlap= True):
 
     _tempWorkspace = None
     _intersect = None
@@ -1239,7 +1275,8 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                                     fieldsToAssign=[reporting_areas_ID_field],
                                     countField=count_field_adjust,
                                     onlyKeepLargest=keep_largest,
-                                    outputFC=_intersect)
+                                    outputFC=_intersect,
+                                    report_areas_overlap=report_areas_overlap)
         else:
             keep_largest = False
 
@@ -1250,7 +1287,8 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
                                     fieldsToAssign=[reporting_areas_ID_field],
                                     countField=count_field_adjust,
                                     onlyKeepLargest=keep_largest,
-                                    outputFC=_intersect)
+                                    outputFC=_intersect,
+                                    report_areas_overlap=report_areas_overlap)
             # arcpy.Intersect_analysis(in_features="'"+ reporting_areas + "' #;'" + reporting_layer+ "' #",out_feature_class= _intersect,join_attributes="ALL",cluster_tolerance="#",output_type="INPUT")
         # Process: Add a field and calculate it with the groupings required for reporting. .
         # Process: Create Reclass Feature Class
