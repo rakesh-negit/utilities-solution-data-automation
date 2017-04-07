@@ -218,7 +218,7 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC,repor
     if rowCount > 0:
         result = arcpy.Append_management(inputs=layerToSplit,
                                 target=outputFC,
-                                schema_type = "TEST",
+                                schema_type = "NO_TEST",
                                field_mapping=None,
                                subtype=None)
 
