@@ -12,6 +12,7 @@ from dateutil.parser import parse
 from . import dataprep as DataPrep
 from . import common as Common
 from . import gptools
+from distutils.util import strtobool
 
 import subprocess
 
@@ -572,8 +573,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
             print "Report is missing the ReportOutputType parameter:  type string, values: Overwrite, Append, Update"
             report_output_type = 'Overwrite'
         if 'ReportAreasOverlap' in report_params:
-            report_areas_overlap = report_params['ReportAreasOverlap']
-
+            report_areas_overlap = bool(strtobool(report_params['ReportAreasOverlap']))
         else:
             print "Report is missing the ReportAreasOverlap parameter:  type string, values: True, False"
             report_areas_overlap = True
@@ -769,7 +769,7 @@ def create_average_report(reporting_areas,reporting_areas_ID_field,report_params
             report_output_type = 'Overwrite'
 
         if 'ReportAreasOverlap' in report_params:
-            report_areas_overlap = report_params['ReportAreasOverlap']
+            report_areas_overlap = bool(strtobool(report_params['ReportAreasOverlap']))
 
         else:
             print "Report is missing the ReportAreasOverlap parameter:  type string, values: True, False"
