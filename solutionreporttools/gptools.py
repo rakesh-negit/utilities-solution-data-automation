@@ -8,13 +8,7 @@ from . import common as Common
 from collections import defaultdict
 
 
-def speedyIntersect(fcToSplit,
-                    splitFC,
-                    fieldsToAssign,
-                    countField,
-                    onlyKeepLargest,
-                    outputFC,
-                    report_areas_overlap):
+def speedyIntersect(fcToSplit, splitFC, fieldsToAssign, countField,onlyKeepLargest, outputFC):
     #arcpy.AddMessage(time.ctime())
     startProcessing = time.time()
     arcpy.env.overwriteOutput = True
@@ -30,8 +24,7 @@ def speedyIntersect(fcToSplit,
                       splitFC=splitFC,
                       countField=countField,
                       onlyKeepLargest=onlyKeepLargest,
-                      outputFC=tempFC,
-                      report_areas_overlap=report_areas_overlap)
+                      outputFC=tempFC)
 
     assignFieldsByIntersect(sourceFC=fc,
                             assignFC=splitFC,
@@ -90,7 +83,7 @@ def assignFieldsByIntersect(sourceFC, assignFC, fieldsToAssign, outputFC):
 
 
     return outputLayer
-def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC,report_areas_overlap):
+def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC):
     desc = arcpy.Describe(fcToSplit)
     path, fileName = os.path.split(outputFC)
 
@@ -147,8 +140,22 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC,repor
     tempWorkspace = arcpy.env.scratchGDB
     tempFCName = Common.random_string_generator()
     tempFC= os.path.join(tempWorkspace, tempFCName)
-    geoToLayerMap = arcpy.SpatialJoin_analysis(target_features=fcToSplit,
-                                       join_features=splitFC,
+
+
+    #Hide all fields to eliminate and Target_id, Join_FID conflicts
+    target_fi = arcpy.FieldInfo()
+    for field in desc.fields:
+        target_fi.addField(field.name,field.name,'HIDDEN','NONE')
+
+    source_fi = arcpy.FieldInfo()
+    for field in arcpy.Describe(splitFC).fields:
+        source_fi.addField(field.name,field.name,'HIDDEN','NONE')
+
+    target_sj_no_fields = arcpy.MakeFeatureLayer_management(fcToSplit,"target_sj_no_fields",field_info=target_fi)
+    join_sj_no_fields = arcpy.MakeFeatureLayer_management(splitFC,"join_sj_no_fields",field_info=source_fi)
+
+    geoToLayerMap = arcpy.SpatialJoin_analysis(target_features=target_sj_no_fields,
+                                       join_features=join_sj_no_fields,
                                       out_feature_class=tempFC,
                                       join_operation="JOIN_ONE_TO_MANY",
                                       join_type="KEEP_COMMON",
@@ -158,6 +165,7 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC,repor
                                       distance_field_name=None)[0]
 
     ddict = defaultdict(list)
+
     with arcpy.da.SearchCursor(geoToLayerMap, ("TARGET_FID", "JOIN_FID")) as sCursor:
         for row in sCursor:
             ddict[row[0]].append(reportingGeometries[row[1]])
@@ -206,11 +214,11 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC,repor
                     #if rowsInserted % 250 == 0:
                         #print (rowsInserted)
                     dif = sum(lens) / origLength
-                    if (dif > 1.0001 or dif < .9999) and report_areas_overlap == False:
+                    if dif > 1.0001 or dif < .9999:
                         totalDif = totalDif + (origLength - sum(lens))
                         print ("Original Row ID: {3} and new features with OIDs of {0} combined count field did not add up to the original: new combined {1}, original {2}. \n This can be caused by self overlapping lines or data falling outside the split areas.  \n\tLayer: {4}".format(",".join(newOIDS),str(sum(lens)),str(origLength),row[iOID],desc.catalogPath))
 
-    if totalDif > 0 and report_areas_overlap == False:
+    if totalDif > 0:
         print ("Total difference from source to results: {0}".format(totalDif))
     result = arcpy.SelectLayerByLocation_management(in_layer=layerToSplit,
                                                     selection_type="SWITCH_SELECTION")
@@ -218,7 +226,7 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC,repor
     if rowCount > 0:
         result = arcpy.Append_management(inputs=layerToSplit,
                                 target=outputFC,
-                                schema_type = "NO_TEST",
+                                schema_type = "TEST",
                                field_mapping=None,
                                subtype=None)
 
