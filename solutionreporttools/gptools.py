@@ -118,6 +118,8 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC):
                                         spatial_grid_3=None)
     fldsInput1 = [f.name for f in arcpy.ListFields(fcToSplit) if f.name not in (desc.shapeFieldName,desc.oidFieldName,shapeLengthFieldName)] + \
                  ["OID@","shape@"]
+    fldsInsert = [arcpy.ValidateFieldName(f.name,path) for f in arcpy.ListFields(fcToSplit) if f.name not in (desc.shapeFieldName,desc.oidFieldName,shapeLengthFieldName)] + \
+                 ["OID@","shape@"]
 
     iOID = -2
     iShape = -1
@@ -178,7 +180,7 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC):
     rowsInserted = 0
     totalDif = 0
     with arcpy.da.SearchCursor(layerToSplit, fldsInput1) as scursor:
-        with arcpy.da.InsertCursor(outputFC, fldsInput1) as icursor:
+        with arcpy.da.InsertCursor(outputFC, fldsInsert) as icursor:
 
             for j,row in enumerate(scursor,1):
                 newRows = []
