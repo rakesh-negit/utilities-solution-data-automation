@@ -8,7 +8,13 @@ from . import common as Common
 from collections import defaultdict
 
 
-def speedyIntersect(fcToSplit, splitFC, fieldsToAssign, countField,onlyKeepLargest, outputFC):
+def speedyIntersect(fcToSplit,
+                    splitFC,
+                    fieldsToAssign,
+                    countField,
+                    onlyKeepLargest,
+                    outputFC,
+                    report_areas_overlap):
     #arcpy.AddMessage(time.ctime())
     startProcessing = time.time()
     arcpy.env.overwriteOutput = True
@@ -24,7 +30,8 @@ def speedyIntersect(fcToSplit, splitFC, fieldsToAssign, countField,onlyKeepLarge
                       splitFC=splitFC,
                       countField=countField,
                       onlyKeepLargest=onlyKeepLargest,
-                      outputFC=tempFC)
+                      outputFC=tempFC,
+                      report_areas_overlap=report_areas_overlap)
 
     assignFieldsByIntersect(sourceFC=fc,
                             assignFC=splitFC,
@@ -83,7 +90,7 @@ def assignFieldsByIntersect(sourceFC, assignFC, fieldsToAssign, outputFC):
 
 
     return outputLayer
-def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC):
+def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, report_areas_overlap):
     desc = arcpy.Describe(fcToSplit)
     path, fileName = os.path.split(outputFC)
 
@@ -216,11 +223,11 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC):
                     #if rowsInserted % 250 == 0:
                         #print (rowsInserted)
                     dif = sum(lens) / origLength
-                    if dif > 1.0001 or dif < .9999:
+                    if (dif > 1.0001 or dif < .9999) and report_areas_overlap == False:
                         totalDif = totalDif + (origLength - sum(lens))
                         print ("Original Row ID: {3} and new features with OIDs of {0} combined count field did not add up to the original: new combined {1}, original {2}. \n This can be caused by self overlapping lines or data falling outside the split areas.  \n\tLayer: {4}".format(",".join(newOIDS),str(sum(lens)),str(origLength),row[iOID],desc.catalogPath))
 
-    if totalDif > 0:
+    if totalDif > 0 and report_areas_overlap == False:
         print ("Total difference from source to results: {0}".format(totalDif))
     result = arcpy.SelectLayerByLocation_management(in_layer=layerToSplit,
                                                     selection_type="SWITCH_SELECTION")
@@ -228,7 +235,7 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC):
     if rowCount > 0:
         result = arcpy.Append_management(inputs=layerToSplit,
                                 target=outputFC,
-                                schema_type = "TEST",
+                                schema_type = "NO_TEST",
                                field_mapping=None,
                                subtype=None)
 
