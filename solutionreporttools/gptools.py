@@ -25,19 +25,37 @@ def speedyIntersect(fcToSplit,
 
     #arcpy.AddMessage(time.ctime())
     #startProcessing = time.time()
+    tempFCUnionName = Common.random_string_generator()
+    tempFCUnion = os.path.join(tempWorkspace, tempFCUnionName)
+    arcpy.Union_analysis(in_features=[splitFC],
+                         out_feature_class=tempFCUnion,
+                         join_attributes="ALL",
+                        cluster_tolerance="",
+                        gaps="GAPS")
+
+    arcpy.DeleteIdentical_management(in_dataset=tempFCUnion,
+                                     fields="SHAPE;{}".format(fieldsToAssign[-1]),
+                                     xy_tolerance=None,
+                                     z_tolerance=None)
 
     fc = splitByLayer(fcToSplit=fcToSplit,
-                      splitFC=splitFC,
+                      splitFC=tempFCUnion,
                       countField=countField,
                       onlyKeepLargest=onlyKeepLargest,
                       outputFC=tempFC,
                       report_areas_overlap=report_areas_overlap)
+
 
     assignFieldsByIntersect(sourceFC=fc,
                             assignFC=splitFC,
                             fieldsToAssign=fieldsToAssign,
                             outputFC=outputFC)
 
+
+    arcpy.DeleteIdentical_management(in_dataset=outputFC,
+                                     fields="SHAPE;{}".format(fieldsToAssign[-1]),
+                                    xy_tolerance=None,
+                                    z_tolerance=None)
     #stopProcessing = time.time()
     #arcpy.AddMessage("Time to process data = {} seconds; in minutes = {}".format(str(int(stopProcessing-startProcessing)), str(int((stopProcessing-startProcessing)/60))))
 
@@ -81,7 +99,7 @@ def assignFieldsByIntersect(sourceFC, assignFC, fieldsToAssign, outputFC):
     outputLayer = arcpy.SpatialJoin_analysis(target_features=sourceFC,
                                join_features=assignFC,
                               out_feature_class=outputFC,
-                              join_operation="JOIN_ONE_TO_ONE",
+                              join_operation="JOIN_ONE_TO_MANY",
                               join_type="KEEP_COMMON",
                               field_mapping=fieldmappings,
                               match_option="HAVE_THEIR_CENTER_IN",
