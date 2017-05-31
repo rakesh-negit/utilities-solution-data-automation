@@ -16,6 +16,7 @@ def speedyIntersect(fcToSplit,
                     outputFC,
                     report_areas_overlap):
     #arcpy.AddMessage(time.ctime())
+
     startProcessing = time.time()
     arcpy.env.overwriteOutput = True
     tempWorkspace = arcpy.env.scratchGDB
@@ -25,18 +26,23 @@ def speedyIntersect(fcToSplit,
 
     #arcpy.AddMessage(time.ctime())
     #startProcessing = time.time()
-    tempFCUnionName = Common.random_string_generator()
-    tempFCUnion = os.path.join(tempWorkspace, tempFCUnionName)
-    arcpy.Union_analysis(in_features=[splitFC],
-                         out_feature_class=tempFCUnion,
-                         join_attributes="ALL",
-                        cluster_tolerance="",
-                        gaps="GAPS")
+    if report_areas_overlap:
+        tempFCUnionName = Common.random_string_generator()
+        tempFCUnion = os.path.join(tempWorkspace, tempFCUnionName)
 
-    arcpy.DeleteIdentical_management(in_dataset=tempFCUnion,
-                                     fields="SHAPE;{}".format(fieldsToAssign[-1]),
-                                     xy_tolerance=None,
-                                     z_tolerance=None)
+
+        arcpy.Union_analysis(in_features=[splitFC],
+                             out_feature_class=tempFCUnion,
+                             join_attributes="ALL",
+                             cluster_tolerance="",
+                             gaps="GAPS")
+
+        arcpy.DeleteIdentical_management(in_dataset=tempFCUnion,
+                                         fields="SHAPE;{}".format(fieldsToAssign[-1]),
+                                         xy_tolerance=None,
+                                         z_tolerance=None)
+    else:
+        tempFCUnion = splitFC
 
     fc = splitByLayer(fcToSplit=fcToSplit,
                       splitFC=tempFCUnion,
@@ -45,22 +51,35 @@ def speedyIntersect(fcToSplit,
                       outputFC=tempFC,
                       report_areas_overlap=report_areas_overlap)
 
-
     assignFieldsByIntersect(sourceFC=fc,
                             assignFC=splitFC,
                             fieldsToAssign=fieldsToAssign,
-                            outputFC=outputFC)
+                            outputFC=outputFC,
+                            report_areas_overlap=report_areas_overlap)
 
 
-    arcpy.DeleteIdentical_management(in_dataset=outputFC,
-                                     fields="SHAPE;{}".format(fieldsToAssign[-1]),
-                                    xy_tolerance=None,
-                                    z_tolerance=None)
+    #feature_count = arcpy.GetCount_management(fcToSplit)[-1]
+    feature_count_split = arcpy.GetCount_management(outputFC)[-1]
+    if report_areas_overlap:
+        arcpy.DeleteIdentical_management(in_dataset=outputFC,
+                                         fields="SHAPE;{}".format(fieldsToAssign[-1]),
+                                         xy_tolerance=None,
+                                         z_tolerance=None)
+        feature_count_id = arcpy.GetCount_management(outputFC)[-1]
+    else:
+        feature_count_id = feature_count_split
+    if feature_count_split != feature_count_id and report_areas_overlap == False:
+        issues  = ['Multiple features that have the same geometry',
+                   'A feature may be self overlapping',
+                   'The reporting areas overlap'
+                   ]
+        help = ''#'Intersect this layer with your reporting area, then use Find Identical and join the results back to identify these features.'
+        print ("The count of the {} changed from {} to {} in the reporting processes.  This can be caused by the following: \n\t{}\n{}".format(splitFC,feature_count_split, feature_count_id,'\n\t'.join(issues),help))
     #stopProcessing = time.time()
     #arcpy.AddMessage("Time to process data = {} seconds; in minutes = {}".format(str(int(stopProcessing-startProcessing)), str(int((stopProcessing-startProcessing)/60))))
 
     #Common.deleteFC(in_datasets=[tempFC])
-def assignFieldsByIntersect(sourceFC, assignFC, fieldsToAssign, outputFC):
+def assignFieldsByIntersect(sourceFC, assignFC, fieldsToAssign, outputFC,report_areas_overlap):
     tempWorkspace = arcpy.env.scratchGDB
 
     assignFields = arcpy.ListFields(dataset=assignFC)
@@ -96,11 +115,15 @@ def assignFieldsByIntersect(sourceFC, assignFC, fieldsToAssign, outputFC):
     for fm in fms.fieldMappings:
         fieldmappings.addFieldMap(fm)
 
+    if report_areas_overlap:
+        join_operation = "JOIN_ONE_TO_MANY"
+    else:
+        join_operation = "JOIN_ONE_TO_ONE"
     outputLayer = arcpy.SpatialJoin_analysis(target_features=sourceFC,
-                               join_features=assignFC,
-                              out_feature_class=outputFC,
-                              join_operation="JOIN_ONE_TO_MANY",
-                              join_type="KEEP_COMMON",
+                                             join_features=assignFC,
+                                             out_feature_class=outputFC,
+                                             join_operation=join_operation,
+                               join_type="KEEP_COMMON",
                               field_mapping=fieldmappings,
                               match_option="HAVE_THEIR_CENTER_IN",
                               search_radius=None,
@@ -123,9 +146,9 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
         measure = "length"
     else:
         arcpy.FeatureClassToFeatureClass_conversion(in_features=fcToSplit,
-                                                      out_path=path,
-                                                      out_name=fileName,
-                                                      where_clause=None,
+                                                    out_path=path,
+                                                    out_name=fileName,
+                                                    where_clause=None,
                                                       field_mapping=None,
                                                       config_keyword=None)
         return outputFC
@@ -142,9 +165,9 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
                                         spatial_grid_2=None,
                                         spatial_grid_3=None)
     fldsInput1 = [f.name for f in arcpy.ListFields(fcToSplit) if f.name not in (desc.shapeFieldName,desc.oidFieldName,shapeLengthFieldName)] + \
-                 ["OID@","shape@"]
+        ["OID@","shape@"]
     fldsInsert = [arcpy.ValidateFieldName(f.name,path) for f in arcpy.ListFields(fcToSplit) if f.name not in (desc.shapeFieldName,desc.oidFieldName,shapeLengthFieldName)] + \
-                 ["OID@","shape@"]
+        ["OID@","shape@"]
 
     iOID = -2
     iShape = -1
@@ -182,10 +205,10 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
     join_sj_no_fields = arcpy.MakeFeatureLayer_management(splitFC,"join_sj_no_fields",field_info=source_fi)
 
     geoToLayerMap = arcpy.SpatialJoin_analysis(target_features=target_sj_no_fields,
-                                       join_features=join_sj_no_fields,
-                                      out_feature_class=tempFC,
-                                      join_operation="JOIN_ONE_TO_MANY",
-                                      join_type="KEEP_COMMON",
+                                               join_features=join_sj_no_fields,
+                                               out_feature_class=tempFC,
+                                               join_operation="JOIN_ONE_TO_MANY",
+                                       join_type="KEEP_COMMON",
                                       field_mapping=None,
                                       match_option="INTERSECT",
                                       search_radius=None,
@@ -252,10 +275,10 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
     rowCount = int(arcpy.GetCount_management(layerToSplit)[0])
     if rowCount > 0:
         result = arcpy.Append_management(inputs=layerToSplit,
-                                target=outputFC,
-                                schema_type = "NO_TEST",
-                               field_mapping=None,
-                               subtype=None)
+                                         target=outputFC,
+                                         schema_type = "NO_TEST",
+                                         field_mapping=None,
+                                subtype=None)
 
     return outputFC
 

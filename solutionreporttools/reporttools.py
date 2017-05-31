@@ -578,6 +578,17 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
             print "Report is missing the ReportAreasOverlap parameter:  type string, values: True, False"
             report_areas_overlap = True
 
+        if not report_areas_overlap:
+            intersect_name = os.path.join("in_memory",Common.random_string_generator())
+            arcpy.Intersect_analysis(in_features=reporting_areas,
+                                         out_feature_class=intersect_name,
+                                             join_attributes='ONLY_FID',
+                                             cluster_tolerance=None,
+                                            output_type='INPUT')
+            overlap_count = int(arcpy.GetCount_management(intersect_name)[-1])
+            if overlap_count:
+                print "WARNING: The reporting areas have overlapping features and specified ReportAreasOverlap is false in your configuration."
+
         reporting_areas_filter = None
         if 'ReportingAreasFilter' in report_params and report_params['ReportingAreasFilter']  != "":
             filt_report_layer = 'filteredReportingAreas'
