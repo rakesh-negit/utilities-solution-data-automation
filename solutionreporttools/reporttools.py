@@ -530,6 +530,19 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                  )
         reporting_layer = datasources["Data"][report_params['Data']]
 
+        matching_fields = arcpy.ListFields(dataset=reporting_layer,
+                                               wild_card=reporting_areas_ID_field,
+                                               field_type=None)
+
+        matched_field = filter(lambda field:field.name == reporting_areas_ID_field,  matching_fields)
+        if len(matched_field) > 0:
+            raise ReportToolsError({
+                "function": "create_reclass_report",
+                "line": 285,
+                "filename":  "reportTools",
+                "synerror": 'The data cannot contain the reporting areas id field.'
+                }
+                 )
         sql = report_params['FilterSQL']
 
 

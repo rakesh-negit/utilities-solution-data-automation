@@ -24,61 +24,27 @@ def speedyIntersect(fcToSplit,
     tempFC= os.path.join(tempWorkspace, tempFCName)
 
 
-    #arcpy.AddMessage(time.ctime())
-    #startProcessing = time.time()
-    if report_areas_overlap:
-        tempFCUnionName = Common.random_string_generator()
-        tempFCUnion = os.path.join(tempWorkspace, tempFCUnionName)
 
+    tempFCUnionName = Common.random_string_generator()
+    tempFCUnion = os.path.join(tempWorkspace, tempFCUnionName)
 
-        arcpy.Union_analysis(in_features=[splitFC],
-                             out_feature_class=tempFCUnion,
-                             join_attributes="ALL",
-                             cluster_tolerance="",
-                             gaps="GAPS")
+    arcpy.Dissolve_management(in_features=splitFC,
+                              out_feature_class=tempFCUnion,
+                             dissolve_field=fieldsToAssign,
+                             statistics_fields=None,
+                             multi_part='SINGLE_PART',
+                             unsplit_lines=None)
 
-        arcpy.DeleteIdentical_management(in_dataset=tempFCUnion,
-                                         fields="SHAPE;{}".format(fieldsToAssign[-1]),
-                                         xy_tolerance=None,
-                                         z_tolerance=None)
-    else:
-        tempFCUnion = splitFC
 
     fc = splitByLayer(fcToSplit=fcToSplit,
                       splitFC=tempFCUnion,
+                      fieldsToAssign=fieldsToAssign,
                       countField=countField,
                       onlyKeepLargest=onlyKeepLargest,
-                      outputFC=tempFC,
+                      outputFC=outputFC,
                       report_areas_overlap=report_areas_overlap)
-
-    assignFieldsByIntersect(sourceFC=fc,
-                            assignFC=splitFC,
-                            fieldsToAssign=fieldsToAssign,
-                            outputFC=outputFC,
-                            report_areas_overlap=report_areas_overlap)
-
-
-    #feature_count = arcpy.GetCount_management(fcToSplit)[-1]
-    feature_count_split = arcpy.GetCount_management(outputFC)[-1]
-    if report_areas_overlap:
-        arcpy.DeleteIdentical_management(in_dataset=outputFC,
-                                         fields="SHAPE;{}".format(fieldsToAssign[-1]),
-                                         xy_tolerance=None,
-                                         z_tolerance=None)
-        feature_count_id = arcpy.GetCount_management(outputFC)[-1]
-    else:
-        feature_count_id = feature_count_split
-    if feature_count_split != feature_count_id and report_areas_overlap == False:
-        issues  = ['Multiple features that have the same geometry',
-                   'A feature may be self overlapping',
-                   'The reporting areas overlap'
-                   ]
-        help = ''#'Intersect this layer with your reporting area, then use Find Identical and join the results back to identify these features.'
-        print ("The count of the {} changed from {} to {} in the reporting processes.  This can be caused by the following: \n\t{}\n{}".format(splitFC,feature_count_split, feature_count_id,'\n\t'.join(issues),help))
-    #stopProcessing = time.time()
-    #arcpy.AddMessage("Time to process data = {} seconds; in minutes = {}".format(str(int(stopProcessing-startProcessing)), str(int((stopProcessing-startProcessing)/60))))
-
-    #Common.deleteFC(in_datasets=[tempFC])
+    if arcpy.Exists(tempFCUnion):
+        arcpy.Delete_management(tempFCUnion)
 def assignFieldsByIntersect(sourceFC, assignFC, fieldsToAssign, outputFC,report_areas_overlap):
     tempWorkspace = arcpy.env.scratchGDB
 
@@ -131,7 +97,8 @@ def assignFieldsByIntersect(sourceFC, assignFC, fieldsToAssign, outputFC,report_
 
 
     return outputLayer
-def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, report_areas_overlap):
+def splitByLayer(fcToSplit, splitFC, fieldsToAssign, countField, onlyKeepLargest, outputFC, report_areas_overlap):
+
     desc = arcpy.Describe(fcToSplit)
     path, fileName = os.path.split(outputFC)
 
@@ -145,12 +112,19 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
         dimension = 2
         measure = "length"
     else:
-        arcpy.FeatureClassToFeatureClass_conversion(in_features=fcToSplit,
-                                                    out_path=path,
-                                                    out_name=fileName,
-                                                    where_clause=None,
-                                                      field_mapping=None,
-                                                      config_keyword=None)
+        #arcpy.FeatureClassToFeatureClass_conversion(in_features=fcToSplit,
+                                                    #out_path=path,
+                                                    #out_name=fileName,
+                                                    #where_clause=None,
+                                                      #field_mapping=None,
+                                                      #config_keyword=None)
+        #TODO - verifiy this is the proper call on points
+        assignFieldsByIntersect(sourceFC=fcToSplit,
+                                assignFC=splitFC,
+                                fieldsToAssign=fieldsToAssign,
+                                outputFC=outputFC,
+                                report_areas_overlap=report_areas_overlap)
+
         return outputFC
 
     arcpy.CreateFeatureclass_management(out_path=path,
@@ -164,13 +138,27 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
                                         spatial_grid_1=None,
                                         spatial_grid_2=None,
                                         spatial_grid_3=None)
+    #Add the reporting name field to set in the split
+    field_assign_object = arcpy.ListFields(dataset=splitFC,
+                                           wild_card=fieldsToAssign[-1],
+                                           field_type=None)
+    #Find the freport label field and add it to the output line layer to store results in
+    #field = [field for field in field_assign_object if field.name == fieldsToAssign[-1]][0]
+    field = filter(lambda field:field.name == fieldsToAssign[-1],  field_assign_object)[0]
+    arcpy.AddField_management(in_table=outputFC, field_name=field.baseName, field_type=field.type,
+                                     field_precision=field.precision, field_scale=field.scale,
+                                     field_length=field.length, field_alias=field.aliasName,
+                                     field_is_nullable=field.isNullable, field_is_required=field.required,
+                                     field_domain=field.domain)
+
     fldsInput1 = [f.name for f in arcpy.ListFields(fcToSplit) if f.name not in (desc.shapeFieldName,desc.oidFieldName,shapeLengthFieldName)] + \
         ["OID@","shape@"]
     fldsInsert = [arcpy.ValidateFieldName(f.name,path) for f in arcpy.ListFields(fcToSplit) if f.name not in (desc.shapeFieldName,desc.oidFieldName,shapeLengthFieldName)] + \
-        ["OID@","shape@"]
+        [fieldsToAssign[-1],"OID@","shape@"]
 
     iOID = -2
     iShape = -1
+    iAssignField = -3
     iCountField = None
     fndField = None
     if countField is not None and countField in fldsInput1:
@@ -184,8 +172,8 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
             raise ValueError("Count is not numeric")
         iCountField = fldsInput1.index(countField)
 
-    with arcpy.da.SearchCursor(splitFC, ["Shape@","OID@"],spatial_reference=desc.spatialReference) as scursor:
-        reportingGeometries = {row[1]:row[0] for row in scursor}
+    with arcpy.da.SearchCursor(splitFC, ["Shape@","OID@",fieldsToAssign[-1]],spatial_reference=desc.spatialReference) as scursor:
+        reportingGeometries = {row[1]:{"Geometry":row[0],fieldsToAssign[-1]:row[2]} for row in scursor}
 
     tempWorkspace = arcpy.env.scratchGDB
     tempFCName = Common.random_string_generator()
@@ -240,7 +228,7 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
                 for geo in ddict[row[iOID]]:
                     newRow = copy.copy(row)
                     #if not row[iShape].disjoint(geo):
-                    splitGeo = rowGeo.intersect(geo, dimension)
+                    splitGeo = rowGeo.intersect(geo['Geometry'], dimension)
 
                     newRow[iShape] = splitGeo
                     splitLength = getattr(splitGeo, measure)
@@ -251,6 +239,7 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
                             pass
                     lens.append(float(splitLength))
                     #newRows.append(copy.copy(newRow))
+                    newRow.insert(iAssignField + 1, geo[fieldsToAssign[-1]])
                     newRows.append(newRow)
                 if onlyKeepLargest == True:
                     result = icursor.insertRow(newRows[lens.index(max(lens))])
@@ -274,11 +263,23 @@ def splitByLayer(fcToSplit, splitFC, countField, onlyKeepLargest, outputFC, repo
                                                     selection_type="SWITCH_SELECTION")
     rowCount = int(arcpy.GetCount_management(layerToSplit)[0])
     if rowCount > 0:
-        result = arcpy.Append_management(inputs=layerToSplit,
+
+        none_split_fc_name = Common.random_string_generator()
+        none_split_fc= os.path.join(tempWorkspace, none_split_fc_name)
+
+        assignFieldsByIntersect(sourceFC=layerToSplit,
+                                    assignFC=splitFC,
+                                    fieldsToAssign=fieldsToAssign,
+                                    outputFC=none_split_fc,
+                                    report_areas_overlap=report_areas_overlap)
+        result = arcpy.Append_management(inputs=none_split_fc,
                                          target=outputFC,
                                          schema_type = "NO_TEST",
                                          field_mapping=None,
                                 subtype=None)
-
+        if arcpy.Exists(none_split_fc):
+            arcpy.Delete_management(none_split_fc)
+    if arcpy.Exists(tempFC):
+        arcpy.Delete_management(tempFC)
     return outputFC
 
