@@ -598,7 +598,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                                              join_attributes='ONLY_FID',
                                              cluster_tolerance=None,
                                             output_type='INPUT')
-            overlap_count = int(arcpy.GetCount_management(intersect_name)[-1])
+            overlap_count = int(arcpy.GetCount_management(intersect_name)[0])
             if overlap_count:
                 print "Warning: The reporting areas have overlapping features and specified ReportAreasOverlap is false in your configuration."
 
