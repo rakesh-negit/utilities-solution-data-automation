@@ -600,7 +600,7 @@ def create_reclass_report(reporting_areas,reporting_areas_ID_field,report_params
                                             output_type='INPUT')
             overlap_count = int(arcpy.GetCount_management(intersect_name)[-1])
             if overlap_count:
-                print "WARNING: The reporting areas have overlapping features and specified ReportAreasOverlap is false in your configuration."
+                print "Warning: The reporting areas have overlapping features and specified ReportAreasOverlap is false in your configuration."
 
         reporting_areas_filter = None
         if 'ReportingAreasFilter' in report_params and report_params['ReportingAreasFilter']  != "":
@@ -1418,7 +1418,7 @@ def split_reclass(reporting_areas, reporting_areas_ID_field,reporting_layer, fie
 
 
                             except Exception, e:
-                                print "WARNING: %s is not valid" % str(sql_state)
+                                print "Warning: %s is not valid" % str(sql_state)
 
                     del row
                 del srows
@@ -1912,7 +1912,7 @@ def calculate_report_results(report_result,
                             row[u] = eval(finalExp)
                         except:
                             line, filename, synerror = trace()
-                            #print "WARNING: Evaluating Final Expression {3} with values {0} for the field {1} failed with the following error: {2}".format(finalExp,reclass_fields[u],synerror,finalExpOrig)
+                            #print "Warning: Evaluating Final Expression {3} with values {0} for the field {1} failed with the following error: {2}".format(finalExp,reclass_fields[u],synerror,finalExpOrig)
                             row[u] = Common.noneToValue(row[u],0)
 
                     else:
